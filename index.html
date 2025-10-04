@@ -619,6 +619,74 @@
                 color: #fcd34d; /* Un amarillo/naranja más claro para el pulso */
             }
         }
+
+        /* ===== NUEVOS ESTILOS PARA EL VISOR DEL ESCÁNER QR ===== */
+        #qrScannerContainer {
+            position: relative;
+            border: none; /* Quitamos el borde anterior para dar paso a las esquinas */
+        }
+
+        /* Overlay para las esquinas de enfoque */
+        .scanner-corners-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Permite que los clics pasen a través */
+            z-index: 2;
+        }
+
+        .scanner-corners-overlay::before,
+        .scanner-corners-overlay::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: rgba(255, 255, 255, 0.9);
+            border-style: solid;
+            border-radius: 1rem;
+        }
+        /* Esquina superior izquierda */
+        .scanner-corners-overlay::before {
+            top: -4px; left: -4px;
+            border-width: 5px 0 0 5px;
+            border-top-left-radius: 1rem;
+        }
+        /* Esquina inferior derecha */
+        .scanner-corners-overlay::after {
+            bottom: -4px; right: -4px;
+            border-width: 0 5px 5px 0;
+            border-bottom-right-radius: 1rem;
+        }
+        
+        /* Overlay para la línea de escaneo */
+        .scanner-line-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .scanner-line {
+            position: absolute;
+            left: 5%; /* Un poco de margen */
+            right: 5%;
+            height: 3px;
+            background: #f5851f; /* Naranja Energético */
+            box-shadow: 0 0 10px #f5851f, 0 0 20px #f5851f;
+            border-radius: 3px;
+            animation: scan-animation 3s infinite cubic-bezier(0.5, 0, 0.5, 1);
+        }
+
+        @keyframes scan-animation {
+            0% { top: 5%; }
+            50% { top: 95%; }
+            100% { top: 5%; }
+        }
+        /* ========================================================= */
     </style>
 </head>
 <body>
@@ -689,7 +757,7 @@
             <button id="logoutButton" class="login-button cancel-button mt-8">Cerrar Sesión</button>
         </div>
 
-        <!-- =================== NUEVA PANTALLA DE ESCANEO QR =================== -->
+        <!-- =================== PANTALLA DE ESCANEO QR (MODIFICADA) =================== -->
         <div id="qrScannerScreen" class="app-container">
             <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Escanear Código QR</h2>
             <p class="screen-description">
@@ -699,6 +767,11 @@
             <div id="qrScannerContainer" class="w-full max-w-md mb-4">
                 <video id="qrScannerVideo" class="w-full" playsinline></video>
                 <canvas id="qrScannerCanvas" class="hidden"></canvas>
+                <!-- NUEVOS ELEMENTOS PARA LA INTERFAZ DE ESCANEO -->
+                <div class="scanner-corners-overlay"></div>
+                <div class="scanner-line-overlay">
+                    <div class="scanner-line"></div>
+                </div>
             </div>
             <button id="goToCompanySelectionButton" class="login-button action-button">Ingreso Manual</button>
             <button id="backToDashboardFromQR" class="login-button go-back-button">Volver al Dashboard</button>
@@ -1883,7 +1956,7 @@
 
             uiElements.operatorSearchInput.addEventListener('input', () => AppLogic.Registration.renderOperatorResults(uiElements.operatorSearchInput.value));
 
-            // Botones "Volver A  "
+            // Botones "Volver"
             const backButtons = {
                 backToDashboardFromAdminMain: 'dashboardScreen', 
                 backToAdminMainFromUnitAdmin: 'adminMainSelectionScreen',
@@ -1915,4 +1988,3 @@
     </script>
 </body>
 </html>
-
