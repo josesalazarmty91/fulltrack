@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FULLTRACK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Librerías para generar y leer QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        /* Estilos personalizados para un mejor aspecto en tabletas */
+        body {
+            font-family: 'Inter', sans-serif; /* Usamos la fuente Inter */
+            background-color: #f0f2f5; /* Un fondo suave */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Asegura que ocupe toda la altura de la vista */
+            margin: 0;
+            padding: 20px; /* Padding general para evitar que el contenido toque los bordes */
+            box-sizing: border-box; /* Incluye padding y borde en el tamaño total */
+        }
+
+        /* Contenedor principal para centrar las pantallas */
+        #app-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Estilo para todos los contenedores de pantalla */
+        .app-container, .login-form-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Bordes más redondeados */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Sombra suave */
+            padding: 2.5rem; /* Mayor padding interno */
+            text-align: center;
+            max-width: 600px; /* Ancho máximo para tablets */
+            width: 100%; /* Ocupa todo el ancho disponible */
+            display: none; /* Oculto por defecto */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Clase para mostrar la pantalla activa */
+        .app-container.active, .login-form-container.active {
+            display: flex;
+        }
+
+        .login-form-container {
+             max-width: 400px;
+             gap: 1.5rem;
+        }
+        
+        #qrScannerContainer {
+            border: 4px solid #e5e7eb;
+            border-radius: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #qrScannerVideo {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+
+        /* Estilo para el área interactiva al tacto (botón Inicia Sesión) */
+        .touch-area {
+            width: 200px;
+            height: 200px;
+            background-color: #0b4d9a; /* Azul Corporativo */
+            border-radius: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease; /* Transiciones suaves */
+            user-select: none; /* Evita que el texto se seleccione al tocar */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: manipulation; /* Optimiza para interacciones táctiles */
+        }
+
+        .touch-area:active {
+            background-color: #084b9a; /* Azul Oscuro */
+            transform: scale(1.05); /* Ligeramente más grande al tocar */
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #87898d; /* Gris Neutro */
+            border-radius: 0.75rem; /* Bordes redondeados para inputs */
+            font-size: 1rem;
+            color: #374151; /* Texto oscuro */
+            outline: none; /* Quitar el contorno al enfocar */
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .login-input:focus {
+            border-color: #0b4d9a; /* Azul Corporativo */
+            box-shadow: 0 0 0 3px rgba(11, 77, 154, 0.2); /* Sombra suave al enfocar */
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background-color: #0b4d9a; /* Azul Corporativo */
+            color: white;
+            font-weight: bold;
+            border-radius: 0.75rem;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .login-button:hover {
+            background-color: #084b9a; /* Azul Oscuro */
+            transform: translateY(-2px); /* Efecto ligero de "levantar" */
+        }
+        
+        .login-button.action-button {
+            background-color: #10b981; /* Verde para acciones positivas */
+        }
+        .login-button.action-button:hover {
+            background-color: #059669;
+        }
+
+        .cancel-button {
+            background-color: #ef4444; /* Rojo */
+            margin-top: 0.5rem;
+        }
+
+        .cancel-button:hover {
+            background-color: #dc2626; /* Rojo más oscuro */
+        }
+
+        /* Estilos para los botones del dashboard y pantallas de administración */
+        .dashboard-option-button, .admin-selection-button {
+            width: 100%;
+            padding: 1.25rem 1rem; /* Más padding para que sean fáciles de tocar */
+            background-color: #0b4d9a; /* Azul Corporativo */
+            color: white;
+            font-weight: bold;
+            border-radius: 1rem; /* Bordes más redondeados */
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1.25rem; /* Fuente más grande */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Sombra sutil */
+        }
+
+        .dashboard-option-button:hover, .admin-selection-button:hover {
+            background-color: #084b9a; /* Azul Oscuro */
+            transform: translateY(-3px); /* Efecto de "levantar" más pronunciado */
+        }
+
+        /* Grid para las opciones del dashboard y administración en pantallas grandes */
+        .dashboard-options-grid, .admin-selection-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* Una columna por defecto */
+            gap: 1.5rem; /* Espacio entre los botones */
+            width: 100%;
+        }
+
+        /* Para tabletas y escritorios, dos columnas */
+        @media (min-width: 768px) {
+            .dashboard-options-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+             .admin-selection-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+            .dashboard-option-button, .admin-selection-button {
+                padding: 1.5rem 1.25rem; /* Más padding en pantallas grandes */
+                font-size: 1.5rem; /* Fuente aún más grande */
+            }
+        }
+
+        /* Estilos para los botones de unidad y empresa */
+        .unit-button-grid, .company-button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2 columnas en móviles */
+            gap: 1rem; /* Espacio entre los botones */
+            width: 100%;
+            max-width: 500px; /* Ancho máximo para los botones */
+            margin-top: 1rem;
+        }
+
+        @media (min-width: 640px) { /* Para tabletas y pantallas más grandes */
+            .unit-button-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            .company-button-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .unit-button {
+            padding: 1.25rem 0.5rem;
+            font-size: 1rem;
+            background-color: #0b4d9a; /* Azul Corporativo */
+            color: white;
+            font-weight: bold;
+            border-radius: 0.75rem;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .unit-button:hover {
+            background-color: #084b9a; /* Azul Oscuro */
+            transform: translateY(-2px);
+        }
+
+        .company-button {
+            padding: 1.5rem 1rem;
+            background: linear-gradient(145deg, #0b4d9a, #084b9a); /* Azul Corporativo y Oscuro */
+            color: white;
+            font-weight: bold;
+            border-radius: 1.25rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 20px rgba(11, 77, 154, 0.3); /* Sombra que coincide con el nuevo color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .company-button:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(11, 77, 154, 0.4); /* Sombra mejorada al pasar el mouse */
+            background: linear-gradient(145deg, #084b9a, #0b4d9a); /* Gradiente invertido al pasar el mouse */
+        }
+
+
+        /* Estilos para los selectores (dropdown) */
+        .operator-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #87898d; /* Gris Neutro */
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            color: #374151;
+            background-color: #f9fafb; /* Un gris muy claro */
+            appearance: none; /* Elimina el estilo predeterminado del sistema operativo */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%236B7280" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>');
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5rem;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .operator-select:focus {
+            border-color: #0b4d9a; /* Azul Corporativo */
+            box-shadow: 0 0 0 3px rgba(11, 77, 154, 0.2);
+        }
+
+        .go-back-button {
+            margin-top: 2rem;
+            background-color: #87898d; /* Gris Neutro */
+        }
+
+        .go-back-button:hover {
+            background-color: #6c6e72; /* Gris Neutro más oscuro */
+        }
+
+        .read-only-field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            color: #374151;
+            background-color: #e2e8f0;
+            text-align: left;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .seal-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 1rem;
+            width: 100%;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            background-color: #f9fafb;
+            text-align: left;
+            padding: 0.5rem;
+        }
+
+        .seal-list-item {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .seal-list-item:last-child { border-bottom: none; }
+
+        .remove-seal-button {
+            background-color: #ef4444;
+            color: white;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .remove-seal-button:hover { background-color: #dc2626; }
+
+        .input-with-button-group {
+            display: flex;
+            width: 100%;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-with-button-group .login-input { margin-bottom: 0; }
+
+        .data-table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+
+        .data-table th, .data-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+
+        .data-table th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        .data-table .edit-button, .data-table .delete-button {
+            background-color: #0b4d9a; /* Azul Corporativo */
+            color: white;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-left: 0.5rem;
+        }
+        .data-table .edit-button:hover { background-color: #084b9a; }
+        .data-table .delete-button { background-color: #ef4444; }
+        .data-table .delete-button:hover { background-color: #dc2626; }
+
+        .data-table .qr-button, .data-table .assign-button {
+            background-color: #10b981; /* Verde */
+            color: white;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-left: 0.5rem;
+        }
+        .data-table .qr-button:hover, .data-table .assign-button:hover { background-color: #059669; }
+
+
+        .bitacora-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        @media (min-width: 640px) {
+            .bitacora-filter-group {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+        
+        .post-finalization-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+        }
+        @media (min-width: 480px) {
+            .post-finalization-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        #qrcode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+        }
+
+        #qrcode-container img {
+             border-radius: 0.25rem;
+        }
+
+
+        .modal-overlay.visible .modal-content { transform: translateY(0); }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .modal-button.confirm { background-color: #0b4d9a; color: white; }
+        .modal-button.confirm:hover { background-color: #084b9a; }
+        .modal-button.cancel { background-color: #ef4444; color: white; }
+        .modal-button.cancel:hover { background-color: #dc2626; }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast-message {
+            background-color: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+            transform: translateY(-100%);
+            pointer-events: auto;
+            min-width: 250px;
+            text-align: center;
+        }
+        .toast-message.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .toast-message.success { background-color: #10b981; }
+        .toast-message.error { background-color: #ef4444; }
+        .toast-message.info { background-color: #0b4d9a; }
+
+        #operatorResultsList {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            background-color: #f9fafb;
+        }
+        .operator-result-item {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            cursor: pointer;
+            border-bottom: 1px solid #e5e7eb;
+            transition: background-color 0.2s ease;
+        }
+        .operator-result-item:last-child {
+            border-bottom: none;
+        }
+        .operator-result-item:hover {
+            background-color: #eef2ff;
+        }
+        .operator-result-item strong {
+            color: #0b4d9a;
+            font-weight: bold;
+        }
+
+        /* --- Estilos para el botón de pantalla completa --- */
+        .fullscreen-button {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1200;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+        .fullscreen-button:hover {
+            transform: scale(1.1);
+            background-color: #ffffff;
+        }
+        .fullscreen-button svg {
+            width: 24px;
+            height: 24px;
+            stroke: #4b5563;
+        }
+
+        /* --- Estilos para la descripción de la pantalla con icono --- */
+        .screen-description {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* 8px */
+            color: #87898d; /* Gris Neutro */
+            margin-bottom: 2rem; /* 32px */
+            font-size: 1.125rem; /* 18px */
+            text-align: center;
+            width: 100%;
+        }
+
+        .description-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0; /* Evita que el icono se encoja */
+            animation: pulse-light 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-light {
+            0%, 100% {
+                color: #f5851f; /* Naranja Energético */
+            }
+            50% {
+                color: #fcd34d; /* Un amarillo/naranja más claro para el pulso */
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="fullscreenButton" class="fullscreen-button" title="Activar/Desactivar pantalla completa"></button>
+
+    <div id="customModalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <div id="customModalImageContainer" class="mb-4"></div>
+            <p id="customModalMessage" class="text-gray-800 text-lg mb-4"></p>
+            <div id="customModalButtons" class="modal-buttons">
+                <button id="customModalConfirmButton" class="modal-button confirm">Confirmar</button>
+                <button id="customModalCancelButton" class="modal-button cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Asignación de Operador -->
+    <div id="assignmentModalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Asignar Operador</h3>
+            <p id="assignmentModalUnitInfo" class="text-gray-600 mb-4"></p>
+            <select id="assignmentOperatorSelect" class="operator-select mb-4">
+                <!-- Opciones se llenarán dinámicamente -->
+            </select>
+            <div class="modal-buttons">
+                <button id="saveAssignmentButton" class="modal-button confirm">Guardar</button>
+                <button id="cancelAssignmentButton" class="modal-button cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="customToastContainer" class="toast-container"></div>
+    
+    <div id="app-wrapper">
+        <!-- Pantallas existentes... -->
+        <div id="mainAppScreen" class="app-container active">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Hola, Inicia sesión</h1>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Toca el cuadro para iniciar sesión.</span>
+            </p>
+            <div id="touchableBox" class="touch-area shadow-lg">Inicia Sesión</div>
+            <p id="message" class="mt-8 text-lg text-gray-700">Esperando tu toque...</p>
+        </div>
+
+        <div id="loginFormScreen" class="login-form-container">
+            <img src="https://grupoamalgama.com.mx/fulltrack/logo.png" alt="Logo del Proyecto" class="w-24 h-auto mx-auto mb-2">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Iniciar Sesión</h2>
+            <input type="text" id="usernameInput" placeholder="Usuario" class="login-input" autocomplete="username">
+            <input type="password" id="passwordInput" placeholder="Contraseña" class="login-input" autocomplete="current-password">
+            <button id="loginButton" class="login-button">Entrar</button>
+            <button id="cancelButton" class="login-button cancel-button">Cerrar</button>
+            <p id="loginMessage" class="text-sm text-gray-600 mt-2"></p>
+        </div>
+
+        <div id="dashboardScreen" class="app-container">
+            <h2 id="welcomeGreeting" class="text-3xl font-extrabold text-gray-800 mb-6">¡Bienvenido!</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Selecciona una opción para continuar:</span>
+            </p>
+            <div class="dashboard-options-grid">
+                <button id="adminButton" class="dashboard-option-button">Administración</button>
+                <button id="checkinButton" class="dashboard-option-button">Registro de Entrada</button>
+                <button id="bitacoraButton" class="dashboard-option-button" style="background-color: #f5851f;">Bitácora de Registros</button>
+            </div>
+            <button id="logoutButton" class="login-button cancel-button mt-8">Cerrar Sesión</button>
+        </div>
+
+        <!-- =================== NUEVA PANTALLA DE ESCANEO QR =================== -->
+        <div id="qrScannerScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Escanear Código QR</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="description-icon"><path d="M4 4h4V2H2v6h2V4zm0 16v-4H2v6h6v-2H4zM20 2h-6v2h4v4h2V2zM18 18h2v-4h2v6h-6v-2h4zM7 7h10v10H7z"></path></svg>
+                <span>Apunta la cámara al QR de la unidad para comenzar.</span>
+            </p>
+            <div id="qrScannerContainer" class="w-full max-w-md mb-4">
+                <video id="qrScannerVideo" class="w-full" playsinline></video>
+                <canvas id="qrScannerCanvas" class="hidden"></canvas>
+            </div>
+            <button id="goToCompanySelectionButton" class="login-button action-button">Ingreso Manual</button>
+            <button id="backToDashboardFromQR" class="login-button go-back-button">Volver al Dashboard</button>
+        </div>
+        <!-- ==================================================================== -->
+
+        <div id="adminMainSelectionScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Administración General</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Elige qué deseas administrar:</span>
+            </p>
+            <div class="admin-selection-grid">
+                <button id="manageUnitsButton" class="admin-selection-button">Unidades</button>
+                <button id="manageOperatorsButton" class="admin-selection-button">Operadores</button>
+                <button id="manageAssignmentsButton" class="admin-selection-button">Asignar Operador</button>
+                <button id="manageUsersButton" class="admin-selection-button">Usuarios</button>
+            </div>
+            <button id="backToDashboardFromAdminMain" class="login-button go-back-button">Volver al Dashboard</button>
+        </div>
+        
+        <!-- =================== NUEVA PANTALLA DE ASIGNACIÓN =================== -->
+        <div id="assignmentAdminScreen" class="app-container" style="max-width: 90vw;">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Asignar Operadores a Unidades</h2>
+             <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="description-icon"><path d="M16 8c0-2.21-1.79-4-4-4S8 5.79 8 8s1.79 4 4 4 4-1.79 4-4zm-4 5c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4z"></path></svg>
+                <span>Presiona "Asignar" para vincular un operador a una unidad.</span>
+            </p>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead><tr><th>Unidad</th><th>Empresa</th><th>Operador Asignado</th><th>Acción</th></tr></thead>
+                    <tbody id="assignmentListTableBody"></tbody>
+                </table>
+            </div>
+             <p id="assignmentListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando asignaciones...</p>
+            <button id="backToAdminMainFromAssignment" class="login-button go-back-button">Volver a Administración</button>
+        </div>
+        <!-- ==================================================================== -->
+
+
+        <div id="unitAdminScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Administrar Unidades</h2>
+            <p id="unitAdminTopMessage" class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Agrega nuevas unidades o edita las existentes.</span>
+            </p>
+            <div class="w-full">
+                <input type="number" id="newUnitNumberInput" placeholder="Número de unidad (Ej: 013)" class="login-input mb-4">
+                <select id="newUnitCompanySelect" class="operator-select mb-4">
+                    <option value="">-- Selecciona Empresa --</option>
+                    <option value="GENESIS">GENESIS</option>
+                    <option value="10M">10M</option>
+                    <option value="TTL">TTL</option>
+                    <option value="RFM">RFM</option>
+                    <option value="Permisionario">Permisionario</option>
+                    <option value="Utilitario">Utilitario</option>
+                </select>
+                <button id="saveUnitButton" class="login-button">Agregar Unidad</button>
+                <p id="unitAdminMessage" class="text-sm text-red-600 mt-2"></p>
+                <button id="cancelUnitEditButton" class="login-button cancel-button mt-4 hidden">Cancelar Edición</button>
+            </div>
+            <button id="refreshUnitsButton" class="login-button mt-6" style="background-color: #3b82f6;">Cargar Unidades Existentes</button>
+            <p class="text-gray-600 mb-4 mt-8">Unidades existentes:</p>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead><tr><th>Unidad</th><th>Empresa</th><th>Acciones</th></tr></thead>
+                    <tbody id="unitListTableBody"></tbody>
+                </table>
+            </div>
+            <p id="unitListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando unidades...</p>
+            <button id="backToAdminMainFromUnitAdmin" class="login-button go-back-button">Volver a Administración</button>
+        </div>
+
+        <div id="operatorMainSelectionScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Administración de Operadores</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Elige qué deseas hacer con los operadores:</span>
+            </p>
+            <div class="admin-selection-grid">
+                <button id="manageAddOperatorButton" class="admin-selection-button">Agregar Nuevo Operador</button>
+                <button id="manageEditOperatorButton" class="admin-selection-button">Editar Operador Existente</button>
+            </div>
+            <button id="backToAdminMainFromOperatorMain" class="login-button go-back-button">Volver a Administración</button>
+        </div>
+
+        <div id="operatorAdminScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Agregar Nuevo Operador</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Agrega un nuevo operador a la base de datos.</span>
+            </p>
+            <input type="text" id="newOperatorNameInput" placeholder="Nombre del Operador" class="login-input mb-4">
+            <select id="newOperatorCompanySelect" class="operator-select mb-4">
+                <option value="">-- Selecciona Empresa --</option>
+                <option value="GENESIS">GENESIS</option>
+                <option value="10M">10M</option>
+                <option value="TTL">TTL</option>
+                <option value="RFM">RFM</option>
+                <option value="Utilitario">Utilitario</option>
+                <option value="Permisionario">Permisionario</option>
+            </select>
+            <button id="saveOperatorButton" class="login-button">Agregar Operador</button>
+            <p id="operatorAdminMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="cancelOperatorEditButton" class="login-button cancel-button mt-4 hidden">Cancelar Edición</button>
+            <button id="backToOperatorMainSelection" class="login-button go-back-button">Volver a Administración de Operadores</button>
+        </div>
+
+        <div id="operatorEditScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Editar Operadores</h2>
+            <p id="operatorEditTopMessage" class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Selecciona un operador para editar o eliminar.</span>
+            </p>
+            <button id="refreshOperatorsButton" class="login-button mb-4" style="background-color: #3b82f6;">Cargar Operadores Existentes</button>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead><tr><th>Operador</th><th>Empresa</th><th>Acciones</th></tr></thead>
+                    <tbody id="operatorListTableBody"></tbody>
+                </table>
+            </div>
+            <p id="operatorListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando operadores...</p>
+            <button id="backToOperatorMainSelectionFromEdit" class="login-button go-back-button">Volver a Administración de Operadores</button>
+        </div>
+
+        <div id="userAdminScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Administrar Usuarios</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Agrega nuevos usuarios a la aplicación.</span>
+            </p>
+            <input type="text" id="newUserNameInput" placeholder="Nombre de Usuario" class="login-input mb-4">
+            <input type="password" id="newUserPasswordInput" placeholder="Contraseña" class="login-input mb-4">
+            <select id="newUserTypeSelect" class="operator-select mb-4">
+                <option value="">-- Selecciona Tipo de Usuario --</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Despachador">Despachador</option>
+            </select>
+            <button id="addUserButton" class="login-button">Agregar Usuario</button>
+            <p id="userAdminMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToAdminMainFromUserAdmin" class="login-button go-back-button">Volver a Administración</button>
+        </div>
+
+        <div id="companySelectionScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Selecciona una Empresa</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Toca el nombre de la empresa para continuar.</span>
+            </p>
+            <div class="company-button-grid">
+                <button class="company-button">GENESIS</button>
+                <button class="company-button">10M</button>
+                <button class="company-button">TTL</button>
+                <button class="company-button">RFM</button>
+                <button class="company-button">Utilitario</button>
+                <button class="company-button">Permisionario</button>
+            </div>
+            <button id="backToDashboardFromCompany" class="login-button go-back-button">Volver al Dashboard</button>
+        </div>
+
+        <div id="checkinScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Selecciona una Unidad</h2>
+            <div class="w-full max-w-md mb-6">
+                <input type="search" id="unitSearchInput" placeholder="Buscar por número de unidad..." class="login-input" inputmode="numeric" autocomplete="off">
+            </div>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Toca el número de la unidad para registrar la entrada.</span>
+            </p>
+            <div id="unitButtonGrid" class="unit-button-grid"></div>
+            <p id="unitLoadMessage" class="text-sm text-gray-500 mt-4 hidden">Cargando unidades...</p>
+            <p id="unitSearchNotFoundMessage" class="text-lg text-red-500 font-bold mt-4 hidden">No se encontraron unidades.</p>
+            <button id="backToCompanySelection" class="login-button go-back-button">Volver a Empresas</button>
+        </div>
+
+        <div id="operatorSelectionScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Selecciona el Operador</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Escribe parte del nombre para buscar.</span>
+            </p>
+            <div class="w-full max-w-md">
+                <input type="search" id="operatorSearchInput" placeholder="Buscar por nombre..." class="login-input" autocomplete="off">
+                <div id="operatorResultsList" class="mt-4 w-full"></div>
+                <p id="operatorSearchNotFoundMessage" class="text-gray-500 mt-4 hidden">No se encontraron operadores.</p>
+            </div>
+            <button id="backToUnitsFromOperator" class="login-button go-back-button">Volver a Unidades</button>
+        </div>
+
+        <div id="bitacoraNumberScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Número de Bitácora</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Introduce el número de bitácora (máximo 12 dígitos).</span>
+            </p>
+            <input type="number" id="bitacoraNumberInput" placeholder="Ej: 123456789012" class="login-input mb-4" maxlength="12">
+            <button id="confirmBitacoraButton" class="login-button">Confirmar Bitácora</button>
+            <p id="bitacoraMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToOperatorSelectionFromBitacora" class="login-button go-back-button">Volver a Operadores</button>
+        </div>
+
+        <div id="kmRegistroScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Ingresa los KM</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Introduce el kilometraje de inicio y fin.</span>
+            </p>
+            <input type="number" step="0.01" id="kmInicioInput" placeholder="KM Inicio" class="login-input mb-4">
+            <input type="number" step="0.01" id="kmFinInput" placeholder="KM Fin" class="login-input mb-4">
+            <div class="flex flex-col items-start w-full mb-4">
+                <label for="kmRecorridosDisplay" class="text-gray-700 text-sm font-bold mb-1">Kilómetros Recorridos:</label>
+                <div id="kmRecorridosDisplay" class="read-only-field">0.00</div>
+            </div>
+            <button id="confirmKmRegistroButton" class="login-button">Confirmar Registro</button>
+            <p id="kmRegistroMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToBitacoraNumber" class="login-button go-back-button">Volver a Bitácora</button>
+        </div>
+
+        <div id="litrosDieselScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Carga de Litros de Diésel</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Introduce los litros cargados en la base</span>
+            </p>
+            <input type="number" step="0.01" id="litrosTotalesInput" placeholder="Litros totales" class="login-input mb-4">
+            <button id="confirmLitrosDieselButton" class="login-button">Confirmar Carga</button>
+            <p id="litrosDieselMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToKmRegistro" class="login-button go-back-button">Volver a KM de Registro</button>
+        </div>
+
+        <div id="litrosAutoScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Litros Auto</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Introduce los litros cargados en el auto.</span>
+            </p>
+            <input type="number" step="0.01" id="litrosAutoInput" placeholder="Litros Auto" class="login-input mb-4">
+            <button id="confirmLitrosAutoButton" class="login-button">Confirmar Litros Auto</button>
+            <p id="litrosAutoMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToLitrosDieselFromAuto" class="login-button go-back-button">Volver a Litros Diésel</button>
+        </div>
+
+        <div id="litrosUreaScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Carga de Litros de Urea</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Introduce los litros de urea cargados.</span>
+            </p>
+            <input type="number" step="0.01" id="litrosUreaInput" placeholder="Litros de urea" class="login-input mb-4">
+            <button id="confirmLitrosUreaButton" class="login-button">Confirmar Carga de Urea</button>
+            <p id="litrosUreaMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToLitrosAuto" class="login-button go-back-button">Volver a Litros Auto</button>
+        </div>
+
+        <div id="sellosScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Registro de Sellos</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Agrega los números de sello (solo números enteros).</span>
+            </p>
+            <div class="input-with-button-group">
+                <input type="number" id="sealInput" placeholder="Número de sello" class="login-input">
+                <button id="addSealButton" class="login-button w-auto px-4 py-2">Agregar Sello</button>
+            </div>
+            <p id="sealInputMessage" class="text-sm text-red-600 mb-4 w-full text-left"></p>
+            <ul id="sealListDisplay" class="seal-list w-full mb-4"></ul>
+            <button id="confirmSellosButton" class="login-button">Confirmar Sellos</button>
+            <p id="sealMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToLitrosUrea" class="login-button go-back-button">Volver a Litros de Urea</button>
+        </div>
+
+        <div id="totalizadorLitrosScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Totalizador de Litros</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Introduce el valor del totalizador de litros.</span>
+            </p>
+            <input type="number" step="0.01" id="totalizadorLitrosInput" placeholder="Ej: 5000.00" class="login-input mb-4">
+            <button id="confirmTotalizadorLitrosButton" class="login-button">Confirmar Totalizador</button>
+            <p id="totalizadorLitrosMessage" class="text-sm text-red-600 mt-2"></p>
+            <button id="backToSellos" class="login-button go-back-button">Volver a Sellos</button>
+        </div>
+
+        <div id="photoUploadScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Evidencia Fotográfica</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Apunta la cámara y toma la foto de evidencia.</span>
+            </p>
+            
+            <div id="cameraContainer" class="w-full max-w-md mb-4">
+                <video id="cameraPreview" class="w-full rounded-lg bg-gray-200" autoplay playsinline></video>
+                <img id="photoPreview" class="hidden w-full rounded-lg">
+            </div>
+
+            <div id="photoActionButtons" class="w-full max-w-xs flex flex-col gap-4">
+                <button id="takePictureButton" class="login-button action-button">Tomar Foto</button>
+                <button id="retryPictureButton" class="login-button cancel-button hidden">Reintentar</button>
+                <button id="confirmPhotoButton" class="login-button hidden">Confirmar y Continuar</button>
+            </div>
+            
+            <button id="backToTotalizador" class="login-button go-back-button">Volver a Totalizador</button>
+        </div>
+
+        <div id="finalizarRegistroScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Registro Completado</h2>
+            <p id="finalGraciasMessage" class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Presiona finalizar para confirmar y guardar.</span>
+            </p>
+            <button id="finalizarRegistroButton" class="login-button">Finalizar Registro</button>
+            <p id="finalMessageDisplay" class="text-lg text-green-600 font-bold mt-4 hidden">¡Gracias por tu registro!</p>
+            <button id="regresarAlInicioButton" class="login-button go-back-button mt-8 hidden"></button>
+        </div>
+
+        <div id="postFinalizationScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">¿Qué deseas hacer ahora?</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Requieres hacer un nuevo registro o ir al inicio?</span>
+            </p>
+            <div class="post-finalization-grid">
+                <button id="newRegistrationButton" class="login-button">Nuevo Registro</button>
+                <button id="goToHomeButton" class="login-button cancel-button">Ir al Inicio</button>
+            </div>
+        </div>
+
+        <div id="bitacoraScreen" class="app-container" style="max-width: 90vw;">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Bitácora de Registros</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Filtra y visualiza los registros de entrada.</span>
+            </p>
+            <div class="bitacora-filter-group">
+                <select id="bitacoraUnitFilter" class="operator-select w-full sm:w-1/3"><option value="">Todas las Unidades</option></select>
+                <input type="date" id="bitacoraStartDateFilter" class="login-input w-full sm:w-1/3">
+                <input type="date" id="bitacoraEndDateFilter" class="login-input w-full sm:w-1/3">
+                <button id="generateBitacoraButton" class="login-button w-full sm:w-auto">Generar Bitácora</button>
+            </div>
+            <p id="bitacoraMessageDisplay" class="text-sm text-red-600 mt-2 hidden">No se encontraron registros para los filtros seleccionados.</p>
+            <p id="bitacoraLoadMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando registros...</p>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead><tr><th>Fecha</th><th>Empresa</th><th>Unidad</th><th>Operador</th><th>KM Inicio</th><th>KM Fin</th><th>Litros Diésel</th><th>Litros Auto</th><th>Litros Urea</th><th>Foto</th></tr></thead>
+                    <tbody id="bitacoraTableBody"></tbody>
+                </table>
+            </div>
+            <button id="backToDashboardFromBitacora" class="login-button go-back-button">Volver al Dashboard</button>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // URL base de la API
+        const API_BASE_URL = 'https://grupoamalgama.com.mx/fulltrack/api/'; 
+
+        // Estado de la aplicación
+        let currentLoggedInUser = { username: '', userType: '' };
+        let selectedCompany = '', selectedUnit = '', selectedOperator = '';
+        let bitacoraNumber = null, kmHubodometro = null, kmInicio = null, kmFin = null;
+        let litrosTotales = null, litrosAuto = null, litrosUrea = null, litrosTotalizador = null;
+        let collectedSeals = [];
+        let capturedPhotoBlob = null;
+        let allOperatorsCache = [];
+        let currentEditingUnitId = null, currentEditingOperatorId = null;
+        let cameraStream = null, qrScannerStream = null;
+        let isScanning = false;
+        let currentAssignmentUnit = null;
+
+        // Referencias a elementos del DOM
+        let allScreens = {}, uiElements = {};
+        
+        // --- Iconos SVG ---
+        const enterFullscreenIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+        const exitFullscreenIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`;
+        const dieselImageUrl = 'https://grupoamalgama.com.mx/fulltrack/diesel.png';
+
+        /** Muestra una pantalla específica y oculta las demás. */
+        function showScreen(screenId) {
+            if (cameraStream && screenId !== 'photoUploadScreen') {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            if (isScanning && screenId !== 'qrScannerScreen') {
+                isScanning = false;
+                if(qrScannerStream) {
+                    qrScannerStream.getTracks().forEach(track => track.stop());
+                    qrScannerStream = null;
+                }
+            }
+
+            Object.values(allScreens).forEach(screen => screen && screen.classList.remove('active'));
+            if (allScreens[screenId]) {
+                allScreens[screenId].classList.add('active');
+            }
+        }
+
+        async function callApi(endpoint, method = 'GET', data = null, isFormData = false) {
+            const url = API_BASE_URL + endpoint;
+            const options = {
+                method: method,
+                headers: isFormData ? {} : { 'Content-Type': 'application/json' },
+                body: isFormData ? data : (data ? JSON.stringify(data) : null)
+            };
+            try {
+                const response = await fetch(url, options);
+                const responseText = await response.text();
+                try {
+                    const result = JSON.parse(responseText);
+                    if (!response.ok) throw new Error(result.message || `Error del servidor: ${response.status}`);
+                    return result;
+                } catch (jsonError) {
+                    console.error('Respuesta no es JSON:', responseText);
+                    throw new Error('Error inesperado del servidor.');
+                }
+            } catch (error) {
+                console.error('Error en callApi:', endpoint, error);
+                showToast(error.message || 'Error de conexión.', 'error');
+                return { success: false, message: error.message || 'Error de conexión.' };
+            }
+        }
+
+        function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast-message ${type}`;
+            toast.textContent = message;
+            uiElements.customToastContainer.appendChild(toast);
+            setTimeout(() => toast.classList.add('visible'), 10);
+            setTimeout(() => {
+                toast.classList.remove('visible');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, duration);
+        }
+        
+        function hideModal() {
+            uiElements.customModalOverlay.classList.remove('visible');
+            uiElements.customModalImageContainer.innerHTML = ''; 
+            if(uiElements.customModalConfirmButton) uiElements.customModalConfirmButton.style.display = 'inline-block';
+            if(uiElements.customModalCancelButton) uiElements.customModalCancelButton.style.display = 'inline-block';
+            
+            const downloadBtn = document.getElementById('downloadQRButton');
+            if(downloadBtn) downloadBtn.remove();
+            const closeBtn = document.getElementById('closeQRModalButton');
+            if(closeBtn) closeBtn.remove();
+        }
+        
+        function showCustomConfirm({ message, iconHtml = '', confirmText = 'Sí', cancelText = 'No', onConfirm, onCancel }) {
+            uiElements.customModalMessage.innerHTML = message;
+            uiElements.customModalImageContainer.innerHTML = iconHtml;
+            uiElements.customModalConfirmButton.textContent = confirmText;
+            uiElements.customModalCancelButton.textContent = cancelText;
+
+            uiElements.customModalConfirmButton.onclick = () => {
+                hideModal();
+                if (onConfirm) onConfirm();
+            };
+
+            uiElements.customModalCancelButton.onclick = () => {
+                hideModal();
+                if (onCancel) onCancel();
+            };
+
+            uiElements.customModalOverlay.classList.add('visible');
+        }
+        
+        function isRegistrationInProgress() {
+            return selectedCompany !== '';
+        }
+
+        function handleBackNavigation(targetScreenId) {
+            const exitScreens = ['qrScannerScreen', 'companySelectionScreen', 'dashboardScreen'];
+            if (exitScreens.includes(targetScreenId) && isRegistrationInProgress()) {
+                showCustomConfirm({
+                    message: 'Tienes un registro en proceso. ¿Deseas abandonarlo?',
+                    confirmText: 'Abandonar',
+                    cancelText: 'Continuar',
+                    onConfirm: () => { 
+                        AppLogic.Registration.resetData();
+                        showScreen(targetScreenId);
+                    }
+                });
+            } else {
+                showScreen(targetScreenId);
+            }
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => showToast(`Error: ${err.message}`, 'error'));
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+
+        function updateFullscreenButton() {
+            uiElements.fullscreenButton.innerHTML = document.fullscreenElement ? exitFullscreenIcon : enterFullscreenIcon;
+        }
+
+        // --- Lógica de la aplicación ---
+        const AppLogic = {
+            Auth: {
+                async login() {
+                    const { usernameInput, passwordInput, loginMessage } = uiElements;
+                    if (!usernameInput.value || !passwordInput.value) {
+                        loginMessage.textContent = 'Ingresa usuario y contraseña.'; return;
+                    }
+                    loginMessage.textContent = 'Verificando...';
+                    const result = await callApi('users.php', 'POST', { action: 'login', username: usernameInput.value, password: passwordInput.value });
+                    if (result.success) {
+                        currentLoggedInUser = { username: usernameInput.value, userType: result.userType };
+                        uiElements.welcomeGreeting.textContent = `¡Hola, ${currentLoggedInUser.username}!`;
+                        this.applyPermissions();
+                        showScreen('dashboardScreen');
+                    } else {
+                        loginMessage.textContent = result.message;
+                    }
+                },
+                logout() {
+                    currentLoggedInUser = { username: '', userType: '' };
+                    AppLogic.Registration.resetData();
+                    uiElements.usernameInput.value = '';
+                    uiElements.passwordInput.value = '';
+                    uiElements.loginMessage.textContent = '';
+                    showScreen('mainAppScreen');
+                },
+                applyPermissions() {
+                    const isAdmin = currentLoggedInUser.userType === 'Administrador';
+                    uiElements.adminButton.classList.toggle('hidden', !isAdmin);
+                }
+            },
+            Bitacora: {
+                async show() {
+                    showScreen('bitacoraScreen');
+                    await this.populateUnitFilter();
+                    await this.generate();
+                },
+                async populateUnitFilter() {
+                    const { bitacoraUnitFilter } = uiElements;
+                    bitacoraUnitFilter.innerHTML = '<option value="">Todas las Unidades</option>';
+                    const result = await callApi('units.php');
+                    if (result.success && result.data) {
+                        result.data.sort((a, b) => parseInt(a.unit_number) - parseInt(b.unit_number))
+                            .forEach(unit => {
+                                const option = document.createElement('option');
+                                option.value = unit.unit_number;
+                                option.textContent = unit.unit_number;
+                                bitacoraUnitFilter.appendChild(option);
+                            });
+                    }
+                },
+                async generate() {
+                    const { bitacoraTableBody, bitacoraMessageDisplay, bitacoraLoadMessage, bitacoraUnitFilter, bitacoraStartDateFilter, bitacoraEndDateFilter } = uiElements;
+                    bitacoraTableBody.innerHTML = '';
+                    bitacoraMessageDisplay.classList.add('hidden');
+                    bitacoraLoadMessage.classList.remove('hidden');
+
+                    const params = new URLSearchParams();
+                    if (bitacoraUnitFilter.value) params.append('unitNumber', bitacoraUnitFilter.value);
+                    if (bitacoraStartDateFilter.value) params.append('startDate', bitacoraStartDateFilter.value);
+                    if (bitacoraEndDateFilter.value) params.append('endDate', bitacoraEndDateFilter.value);
+
+                    const result = await callApi(`registrations.php?${params.toString()}`);
+                    bitacoraLoadMessage.classList.add('hidden');
+
+                    if (result.success && result.data && result.data.length > 0) {
+                        result.data.forEach(this.renderRow);
+                    } else {
+                        bitacoraMessageDisplay.textContent = 'No se encontraron registros para los filtros seleccionados.';
+                        bitacoraMessageDisplay.classList.remove('hidden');
+                    }
+                },
+                renderRow(data) {
+                    const row = uiElements.bitacoraTableBody.insertRow();
+                    const date = new Date(data.timestamp.replace(' ', 'T') + 'Z');
+                    
+                    const photoCellHtml = data.photo_path 
+                        ? `<a href="${API_BASE_URL}${data.photo_path}" target="_blank"><img src="${API_BASE_URL}${data.photo_path}" class="w-16 h-auto object-cover rounded"></a>`
+                        : 'N/A';
+
+                    row.innerHTML = `
+                        <td>${date.toLocaleDateString('es-ES', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>${data.company || ''}</td>
+                        <td>${data.unit_number || ''}</td>
+                        <td>${data.operator_name || ''}</td>
+                        <td>${data.km_inicio ? parseFloat(data.km_inicio).toFixed(2) : ''}</td>
+                        <td>${data.km_fin ? parseFloat(data.km_fin).toFixed(2) : ''}</td>
+                        <td>${data.litros_diesel ? parseFloat(data.litros_diesel).toFixed(2) : ''}</td>
+                        <td>${data.litros_auto ? parseFloat(data.litros_auto).toFixed(2) : ''}</td>
+                        <td>${data.litros_urea ? parseFloat(data.litros_urea).toFixed(2) : ''}</td>
+                        <td>${photoCellHtml}</td>
+                    `;
+                }
+            },
+            Registration: {
+                resetData() {
+                    selectedCompany = ''; selectedUnit = ''; selectedOperator = ''; bitacoraNumber = null;
+                    kmHubodometro = null; kmInicio = null; kmFin = null; litrosTotales = null;
+                    litrosAuto = null; litrosUrea = null; collectedSeals = []; litrosTotalizador = null;
+                    capturedPhotoBlob = null;
+                    allOperatorsCache = [];
+                    const inputsToClear = ['bitacoraNumberInput', 'kmInicioInput', 'kmFinInput', 'litrosTotalesInput', 'litrosAutoInput', 'litrosUreaInput', 'sealInput', 'totalizadorLitrosInput', 'operatorSearchInput', 'unitSearchInput'];
+                    inputsToClear.forEach(id => { if(uiElements[id]) uiElements[id].value = ''; });
+                    if(uiElements.operatorResultsList) uiElements.operatorResultsList.innerHTML = '';
+                    if(uiElements.kmRecorridosDisplay) uiElements.kmRecorridosDisplay.textContent = '0.00';
+                    if(uiElements.sealListDisplay) uiElements.sealListDisplay.innerHTML = '';
+                },
+                async startQRScan() {
+                    showScreen('qrScannerScreen');
+                    isScanning = true;
+                    const video = uiElements.qrScannerVideo;
+                    const canvasElement = uiElements.qrScannerCanvas;
+                    const canvas = canvasElement.getContext("2d");
+
+                    try {
+                        qrScannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                        video.srcObject = qrScannerStream;
+                        video.setAttribute("playsinline", true);
+                        video.play();
+                        requestAnimationFrame(tick);
+                    } catch (err) {
+                        console.error("Error al escanear QR:", err);
+                        showToast('Error de cámara. Usa el ingreso manual.', 'error');
+                        isScanning = false;
+                    }
+
+                    function tick() {
+                        if (!isScanning) return;
+                        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                            canvasElement.height = video.videoHeight;
+                            canvasElement.width = video.videoWidth;
+                            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                            const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+                            if (code) {
+                                isScanning = false;
+                                qrScannerStream.getTracks().forEach(track => track.stop());
+                                AppLogic.Registration.processScannedQR(code.data);
+                                return;
+                            }
+                        }
+                        requestAnimationFrame(tick);
+                    }
+                },
+                async processScannedQR(data) {
+                    try {
+                        const qrData = JSON.parse(data);
+                        if (!qrData.id) throw new Error("QR sin ID de unidad.");
+                        
+                        // Consultar la unidad para obtener el operador asignado
+                        const result = await callApi(`units.php?id=${qrData.id}`);
+                        if(result.success && result.data){
+                            const unitData = result.data;
+                            selectedCompany = unitData.company;
+                            selectedUnit = unitData.unit_number;
+
+                            if(unitData.assigned_operator_id && unitData.assigned_operator_name){
+                                // CASO A: Operador asignado
+                                selectedOperator = unitData.assigned_operator_name;
+                                showToast(`Unidad ${selectedUnit} y Operador '${selectedOperator}' cargados.`, 'success');
+                                showScreen('bitacoraNumberScreen'); // Saltar a bitácora
+                            } else {
+                                // CASO B: Sin operador asignado
+                                showToast(`Unidad ${selectedUnit} cargada. Selecciona un operador.`, 'info');
+                                this.selectUnit(selectedUnit); // Ir a selección manual de operador
+                            }
+                        } else {
+                             throw new Error("Unidad no encontrada en la base de datos.");
+                        }
+                    } catch (e) {
+                        console.error("Error al procesar QR:", e);
+                        showToast('QR no válido. Intenta de nuevo.', 'error');
+                        setTimeout(() => {
+                            if(document.getElementById('qrScannerScreen').classList.contains('active')) {
+                                AppLogic.Registration.startQRScan();
+                            }
+                        }, 2000);
+                    }
+                },
+                async start(companyName) {
+                    selectedCompany = companyName;
+                    showScreen('checkinScreen');
+                    const { unitButtonGrid, unitLoadMessage } = uiElements;
+                    unitButtonGrid.innerHTML = '';
+                    unitLoadMessage.classList.remove('hidden');
+                    const result = await callApi(`units.php?company=${companyName}`);
+                    unitLoadMessage.classList.add('hidden');
+                    if (result.success && result.data) {
+                        result.data.sort((a,b) => a.unit_number - b.unit_number).forEach(unit => {
+                            const button = document.createElement('button');
+                            button.className = 'unit-button';
+                            button.textContent = unit.unit_number;
+                            button.onclick = () => this.selectUnit(unit.unit_number);
+                            unitButtonGrid.appendChild(button);
+                        });
+                    }
+                },
+                async selectUnit(unitNumber) {
+                    selectedUnit = unitNumber;
+                    showScreen('operatorSelectionScreen');
+                    uiElements.operatorSearchInput.value = '';
+                    uiElements.operatorResultsList.innerHTML = '';
+                    uiElements.operatorSearchNotFoundMessage.classList.add('hidden');
+                    const result = await callApi(`operators.php?company=${selectedCompany}`);
+                    if(result.success && result.data) {
+                        allOperatorsCache = result.data.sort((a,b) => a.name.localeCompare(b.name));
+                        this.renderOperatorResults('');
+                    } else {
+                        allOperatorsCache = [];
+                    }
+                },
+                renderOperatorResults(searchTerm) {
+                    const { operatorResultsList, operatorSearchNotFoundMessage } = uiElements;
+                    operatorResultsList.innerHTML = '';
+                    searchTerm = searchTerm.toLowerCase();
+                    const filteredOperators = allOperatorsCache.filter(op => op.name.toLowerCase().includes(searchTerm));
+                    operatorSearchNotFoundMessage.classList.toggle('hidden', filteredOperators.length === 0);
+                    filteredOperators.forEach(op => {
+                        const item = document.createElement('div');
+                        item.className = 'operator-result-item';
+                        item.innerHTML = op.name.replace(new RegExp(searchTerm, 'gi'), (match) => `<strong>${match}</strong>`);
+                        item.onclick = () => this.confirmOperator(op.name);
+                        operatorResultsList.appendChild(item);
+                    });
+                },
+                confirmOperator(operatorName) {
+                    if (!operatorName) { showToast('Selecciona un operador.', 'error'); return; }
+                    selectedOperator = operatorName;
+                    showScreen('bitacoraNumberScreen');
+                },
+                updateKmRecorridos() {
+                    const { kmInicioInput, kmFinInput, kmRecorridosDisplay, kmRegistroMessage } = uiElements;
+                    const inicio = parseFloat(kmInicioInput.value), fin = parseFloat(kmFinInput.value);
+                    if (!isNaN(inicio) && !isNaN(fin)) {
+                        if (fin >= inicio) {
+                            kmRecorridosDisplay.textContent = (fin - inicio).toFixed(2);
+                            kmRegistroMessage.textContent = '';
+                        } else {
+                            kmRecorridosDisplay.textContent = 'Inválido';
+                            kmRegistroMessage.textContent = 'KM Fin no puede ser menor al de Inicio.';
+                        }
+                    }
+                },
+                addSeal() {
+                    const { sealInput, sealInputMessage } = uiElements;
+                    const sealValue = parseInt(sealInput.value);
+                    if (isNaN(sealValue)) { sealInputMessage.textContent = 'Ingresa un número válido.'; return; }
+                    if (collectedSeals.includes(sealValue)) { sealInputMessage.textContent = 'Sello ya agregado.'; return; }
+                    collectedSeals.push(sealValue);
+                    sealInput.value = '';
+                    sealInputMessage.textContent = '';
+                    this.updateSealsDisplay();
+                    showToast('Sello agregado.', 'success', 1500);
+                },
+                updateSealsDisplay() {
+                    uiElements.sealListDisplay.innerHTML = collectedSeals.length === 0 ? '<li class="seal-list-item text-gray-500">No hay sellos.</li>' : '';
+                    collectedSeals.forEach((seal, index) => {
+                        const li = document.createElement('li');
+                        li.className = 'seal-list-item';
+                        li.innerHTML = `<span>${seal}</span><button class="remove-seal-button" data-index="${index}">X</button>`;
+                        li.querySelector('button').onclick = (e) => {
+                            collectedSeals.splice(parseInt(e.target.dataset.index), 1);
+                            this.updateSealsDisplay();
+                        };
+                        uiElements.sealListDisplay.appendChild(li);
+                    });
+                },
+                async showPhotoScreen() {
+                    showScreen('photoUploadScreen');
+                    uiElements.cameraPreview.classList.remove('hidden');
+                    uiElements.photoPreview.classList.add('hidden');
+                    uiElements.takePictureButton.classList.remove('hidden');
+                    uiElements.retryPictureButton.classList.add('hidden');
+                    uiElements.confirmPhotoButton.classList.add('hidden');
+                    try {
+                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                        uiElements.cameraPreview.srcObject = cameraStream;
+                    } catch (err) {
+                        console.error("Error al acceder a la cámara:", err);
+                        showToast('Error de cámara. Revisa los permisos.', 'error');
+                        showScreen('totalizadorLitrosScreen');
+                    }
+                },
+                takePicture() {
+                    const { cameraPreview, photoPreview } = uiElements;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = cameraPreview.videoWidth;
+                    canvas.height = cameraPreview.videoHeight;
+                    canvas.getContext('2d').drawImage(cameraPreview, 0, 0);
+                    canvas.toBlob(blob => {
+                        capturedPhotoBlob = blob;
+                        photoPreview.src = URL.createObjectURL(blob);
+                        cameraPreview.classList.add('hidden');
+                        photoPreview.classList.remove('hidden');
+                        uiElements.takePictureButton.classList.add('hidden');
+                        uiElements.retryPictureButton.classList.remove('hidden');
+                        uiElements.confirmPhotoButton.classList.remove('hidden');
+                        if (cameraStream) cameraStream.getTracks().forEach(track => track.stop());
+                    }, 'image/jpeg', 0.9);
+                },
+                retryPicture() { this.showPhotoScreen(); },
+                async uploadPhotoAndFinalize() {
+                    if (!capturedPhotoBlob) { showToast('No se ha tomado foto.', 'error'); return; }
+                    showToast('Subiendo foto y guardando registro...', 'info', 5000);
+                    const formData = new FormData();
+                    formData.append('photo', capturedPhotoBlob, 'evidence.jpg');
+                    const uploadResult = await callApi('upload.php', 'POST', formData, true);
+                    if (!uploadResult || !uploadResult.success) {
+                        showToast(uploadResult.message || 'Error al subir la foto.', 'error'); return;
+                    }
+                    const photoPath = uploadResult.filePath;
+                    const registroData = {
+                        company: selectedCompany, unitNumber: selectedUnit, operatorName: selectedOperator,
+                        bitacoraNumber: uiElements.bitacoraNumberInput.value,
+                        kmInicio: parseFloat(uiElements.kmInicioInput.value),
+                        kmFin: parseFloat(uiElements.kmFinInput.value),
+                        kmRecorridos: parseFloat(uiElements.kmFinInput.value) - parseFloat(uiElements.kmInicioInput.value),
+                        litrosTotales: parseFloat(uiElements.litrosTotalesInput.value),
+                        litrosAuto: parseFloat(uiElements.litrosAutoInput.value) || 0,
+                        litrosUrea: parseFloat(uiElements.litrosUreaInput.value) || 0,
+                        seals: collectedSeals,
+                        litrosTotalizador: parseFloat(uiElements.totalizadorLitrosInput.value),
+                        photoPath
+                    };
+                    const finalResult = await callApi('registrations.php', 'POST', registroData);
+                    if (finalResult.success) {
+                        showToast(finalResult.message, 'success');
+                        this.resetData();
+                        showScreen('postFinalizationScreen');
+                    } else {
+                        showToast(finalResult.message || 'Error al guardar el registro.', 'error');
+                    }
+                }
+            },
+            Admin: {
+                Units: {
+                    async save() {
+                        const { newUnitNumberInput, newUnitCompanySelect, unitAdminMessage } = uiElements;
+                        const unitNumber = newUnitNumberInput.value.trim();
+                        const company = newUnitCompanySelect.value;
+                        if (!unitNumber || !company) { unitAdminMessage.textContent = 'Todos los campos son requeridos.'; return; }
+                        const data = { unitNumber: String(parseInt(unitNumber)).padStart(3, '0'), company, id: currentEditingUnitId };
+                        const result = await callApi('units.php', currentEditingUnitId ? 'PUT' : 'POST', data);
+                        showToast(result.message, result.success ? 'success' : 'error');
+                        if (result.success) {
+                            this.displayFormForAdd();
+                            this.populateList();
+                        }
+                    },
+                    displayFormForAdd() {
+                        currentEditingUnitId = null;
+                        uiElements.newUnitNumberInput.value = '';
+                        uiElements.newUnitCompanySelect.value = '';
+                        uiElements.saveUnitButton.textContent = 'Agregar Unidad';
+                        uiElements.cancelUnitEditButton.classList.add('hidden');
+                        uiElements.unitAdminTopMessage.textContent = 'Agrega nuevas unidades o edita las existentes.';
+                    },
+                    async loadForEdit(unitId) {
+                        currentEditingUnitId = unitId;
+                        const result = await callApi('units.php');
+                        if (result.success && result.data) {
+                            const unit = result.data.find(u => u.id == unitId);
+                            if (unit) {
+                                uiElements.newUnitNumberInput.value = parseInt(unit.unit_number);
+                                uiElements.newUnitCompanySelect.value = unit.company;
+                                uiElements.saveUnitButton.textContent = 'Actualizar Unidad';
+                                uiElements.cancelUnitEditButton.classList.remove('hidden');
+                                uiElements.unitAdminTopMessage.textContent = `Editando Unidad ${unit.unit_number}`;
+                            } else {
+                                showToast('Unidad no encontrada.', 'error');
+                            }
+                        }
+                    },
+                    delete(unitId, unitNumber) {
+                        showCustomConfirm({
+                            message: `¿Seguro que quieres eliminar la unidad ${unitNumber}?`,
+                            onConfirm: async () => {
+                                const result = await callApi(`units.php?id=${unitId}`, 'DELETE');
+                                showToast(result.message, result.success ? 'success' : 'error');
+                                this.populateList();
+                            }
+                        });
+                    },
+                    generateQRCode(unit) {
+                        const dataToEncode = JSON.stringify({ id: unit.id, unit_number: unit.unit_number, company: unit.company });
+                        uiElements.customModalImageContainer.innerHTML = '<div id="qrcode-container" class="mx-auto"></div>';
+                        new QRCode(document.getElementById("qrcode-container"), { text: dataToEncode, width: 256, height: 256 });
+                        uiElements.customModalMessage.innerHTML = `QR para Unidad: <strong>${unit.unit_number}</strong><br>Empresa: <strong>${unit.company}</strong>`;
+                        uiElements.customModalConfirmButton.style.display = 'none';
+                        uiElements.customModalCancelButton.style.display = 'none';
+
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.id = 'downloadQRButton';
+                        downloadBtn.className = 'modal-button confirm';
+                        downloadBtn.textContent = 'Descargar';
+                        
+                        const closeBtn = document.createElement('button');
+                        closeBtn.id = 'closeQRModalButton';
+                        closeBtn.className = 'modal-button cancel';
+                        closeBtn.textContent = 'Cerrar';
+                        
+                        document.getElementById('customModalButtons').appendChild(downloadBtn);
+                        document.getElementById('customModalButtons').appendChild(closeBtn);
+
+                        downloadBtn.onclick = () => {
+                            const qrImage = uiElements.customModalImageContainer.querySelector('#qrcode-container img');
+                            const link = document.createElement('a');
+                            link.download = `QR_Unidad_${unit.unit_number}.png`;
+                            link.href = qrImage.src;
+                            link.click();
+                        };
+                        closeBtn.onclick = () => hideModal();
+                        uiElements.customModalOverlay.classList.add('visible');
+                    },
+                    async populateList() {
+                        const { unitListTableBody, unitListMessage } = uiElements;
+                        unitListTableBody.innerHTML = '';
+                        unitListMessage.classList.remove('hidden');
+                        const result = await callApi('units.php');
+                        unitListMessage.classList.add('hidden');
+                        if (result.success && result.data) {
+                            if(result.data.length === 0) {
+                                unitListTableBody.innerHTML = '<tr><td colspan="3" class="text-center">No hay unidades.</td></tr>';
+                                return;
+                            }
+                            result.data.sort((a,b) => a.unit_number - b.unit_number).forEach(unit => {
+                                const row = unitListTableBody.insertRow();
+                                row.innerHTML = `<td>${unit.unit_number}</td><td>${unit.company}</td>`;
+                                const actionsCell = row.insertCell();
+                                const editBtn = document.createElement('button');
+                                editBtn.textContent = 'Editar';
+                                editBtn.className = 'edit-button';
+                                editBtn.onclick = () => this.loadForEdit(unit.id);
+                                actionsCell.appendChild(editBtn);
+
+                                const deleteBtn = document.createElement('button');
+                                deleteBtn.textContent = 'Eliminar';
+                                deleteBtn.className = 'delete-button';
+                                deleteBtn.onclick = () => this.delete(unit.id, unit.unit_number);
+                                actionsCell.appendChild(deleteBtn);
+                                
+                                const qrBtn = document.createElement('button');
+                                qrBtn.textContent = 'QR';
+                                qrBtn.className = 'qr-button';
+                                qrBtn.onclick = () => this.generateQRCode(unit);
+                                actionsCell.appendChild(qrBtn);
+                            });
+                        }
+                    }
+                },
+                Operators: {
+                    async save() {
+                        const { newOperatorNameInput, newOperatorCompanySelect, operatorAdminMessage } = uiElements;
+                        const operatorName = newOperatorNameInput.value.trim();
+                        const company = newOperatorCompanySelect.value;
+                        if (!operatorName || !company) { operatorAdminMessage.textContent = 'Todos los campos son requeridos.'; return; }
+                        const data = { name: operatorName, company, id: currentEditingOperatorId };
+                        const result = await callApi('operators.php', currentEditingOperatorId ? 'PUT' : 'POST', data);
+                        showToast(result.message, result.success ? 'success' : 'error');
+                        if (result.success) {
+                            this.displayFormForAdd();
+                            this.populateList();
+                            showScreen('operatorEditScreen');
+                        }
+                    },
+                    displayFormForAdd() {
+                        currentEditingOperatorId = null;
+                        uiElements.newOperatorNameInput.value = '';
+                        uiElements.newOperatorCompanySelect.value = '';
+                        uiElements.saveOperatorButton.textContent = 'Agregar Operador';
+                        uiElements.cancelOperatorEditButton.classList.add('hidden');
+                        uiElements.operatorAdminScreen.querySelector('h2').textContent = 'Agregar Nuevo Operador';
+                    },
+                    async loadForEdit(operatorId) {
+                        currentEditingOperatorId = operatorId;
+                        const result = await callApi('operators.php');
+                        if (result.success && result.data) {
+                            const operator = result.data.find(o => o.id == operatorId);
+                            if (operator) {
+                                uiElements.newOperatorNameInput.value = operator.name;
+                                uiElements.newOperatorCompanySelect.value = operator.company;
+                                uiElements.saveOperatorButton.textContent = 'Actualizar Operador';
+                                uiElements.cancelOperatorEditButton.classList.remove('hidden');
+                                uiElements.operatorAdminScreen.querySelector('h2').textContent = `Editando: ${operator.name}`;
+                                showScreen('operatorAdminScreen');
+                            } else {
+                                showToast('No se pudo cargar el operador.', 'error');
+                            }
+                        }
+                    },
+                    delete(operatorId, operatorName) {
+                        showCustomConfirm({
+                            message: `¿Seguro que quieres eliminar a ${operatorName}?`,
+                            onConfirm: async () => {
+                                const result = await callApi(`operators.php?id=${operatorId}`, 'DELETE');
+                                showToast(result.message, result.success ? 'success' : 'error');
+                                this.populateList();
+                            }
+                        });
+                    },
+                    async populateList() {
+                        const { operatorListTableBody, operatorListMessage } = uiElements;
+                        operatorListTableBody.innerHTML = '';
+                        operatorListMessage.classList.remove('hidden');
+                        const result = await callApi('operators.php');
+                        operatorListMessage.classList.add('hidden');
+                        if (result.success && result.data) {
+                            if(result.data.length === 0) {
+                                operatorListTableBody.innerHTML = '<tr><td colspan="3" class="text-center">No hay operadores.</td></tr>';
+                                return;
+                            }
+                            result.data.sort((a,b) => a.name.localeCompare(b.name)).forEach(op => {
+                                const row = operatorListTableBody.insertRow();
+                                row.innerHTML = `<td>${op.name}</td><td>${op.company}</td>`;
+                                const actionsCell = row.insertCell();
+                                const editBtn = document.createElement('button');
+                                editBtn.textContent = 'Editar';
+                                editBtn.className = 'edit-button';
+                                editBtn.onclick = () => this.loadForEdit(op.id);
+                                actionsCell.appendChild(editBtn);
+                                const deleteBtn = document.createElement('button');
+                                deleteBtn.textContent = 'Eliminar';
+                                deleteBtn.className = 'delete-button';
+                                deleteBtn.onclick = () => this.delete(op.id, op.name);
+                                actionsCell.appendChild(deleteBtn);
+                            });
+                        }
+                    }
+                },
+                Users: {
+                    async add() {
+                        const { newUserNameInput, newUserPasswordInput, newUserTypeSelect, userAdminMessage } = uiElements;
+                        const data = { username: newUserNameInput.value, password: newUserPasswordInput.value, userType: newUserTypeSelect.value };
+                        if (!data.username || !data.password || !data.userType) { userAdminMessage.textContent = 'Todos los campos son requeridos.'; return; }
+                        const result = await callApi('users.php', 'POST', data);
+                        showToast(result.message, result.success ? 'success' : 'error');
+                        if (result.success) {
+                            newUserNameInput.value = '';
+                            newUserPasswordInput.value = '';
+                            newUserTypeSelect.value = '';
+                        }
+                    }
+                },
+                Assignments: {
+                    show() {
+                        showScreen('assignmentAdminScreen');
+                        this.populateList();
+                    },
+                    async populateList() {
+                        const { assignmentListTableBody, assignmentListMessage } = uiElements;
+                        assignmentListTableBody.innerHTML = '';
+                        assignmentListMessage.classList.remove('hidden');
+                        const result = await callApi('assignments.php');
+                        assignmentListMessage.classList.add('hidden');
+                        if(result.success && result.data){
+                            result.data.forEach(item => {
+                                const row = assignmentListTableBody.insertRow();
+                                const operatorName = item.assigned_operator_name || '<span class="text-red-500">No Asignado</span>';
+                                row.innerHTML = `
+                                    <td>${item.unit_number}</td>
+                                    <td>${item.company_name}</td>
+                                    <td>${operatorName}</td>
+                                `;
+                                const actionCell = row.insertCell();
+                                const assignBtn = document.createElement('button');
+                                assignBtn.textContent = item.assigned_operator_id ? 'Cambiar' : 'Asignar';
+                                assignBtn.className = 'assign-button';
+                                assignBtn.onclick = () => this.openAssignmentModal(item);
+                                actionCell.appendChild(assignBtn);
+                            });
+                        }
+                    },
+                    async openAssignmentModal(unit) {
+                        currentAssignmentUnit = unit;
+                        const { assignmentModalOverlay, assignmentModalUnitInfo, assignmentOperatorSelect } = uiElements;
+                        assignmentModalUnitInfo.innerHTML = `Unidad: <strong>${unit.unit_number}</strong> | Empresa: <strong>${unit.company_name}</strong>`;
+                        
+                        const operatorsResult = await callApi('operators.php');
+                        if(operatorsResult.success && operatorsResult.data){
+                            assignmentOperatorSelect.innerHTML = '<option value="null">-- Sin Asignar --</option>';
+                            operatorsResult.data.forEach(op => {
+                                const option = document.createElement('option');
+                                option.value = op.id;
+                                option.textContent = `${op.name} (${op.company})`;
+                                assignmentOperatorSelect.appendChild(option);
+                            });
+                            assignmentOperatorSelect.value = unit.assigned_operator_id || 'null';
+                        }
+                        assignmentModalOverlay.classList.add('visible');
+                    },
+                    async saveAssignment() {
+                        const operatorId = uiElements.assignmentOperatorSelect.value;
+                        const unitId = currentAssignmentUnit.unit_id;
+                        
+                        const result = await callApi('assignments.php', 'POST', { unitId, operatorId });
+                        showToast(result.message, result.success ? 'success' : 'error');
+                        if(result.success){
+                            this.closeAssignmentModal();
+                            this.populateList();
+                        }
+                    },
+                    closeAssignmentModal() {
+                        uiElements.assignmentModalOverlay.classList.remove('visible');
+                        currentAssignmentUnit = null;
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen'];
+            screenIds.forEach(id => allScreens[id] = document.getElementById(id));
+            
+            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer'];
+            uiElementIds.forEach(id => uiElements[id] = document.getElementById(id));
+
+            uiElements.fullscreenButton.onclick = toggleFullScreen;
+            document.addEventListener('fullscreenchange', updateFullscreenButton);
+            updateFullscreenButton();
+
+            // Event Listeners Principales
+            uiElements.loginButton.onclick = () => AppLogic.Auth.login();
+            uiElements.checkinButton.onclick = () => AppLogic.Registration.startQRScan();
+            uiElements.adminButton.onclick = () => showScreen('adminMainSelectionScreen');
+            uiElements.manageAssignmentsButton.onclick = () => AppLogic.Admin.Assignments.show();
+            uiElements.saveAssignmentButton.onclick = () => AppLogic.Admin.Assignments.saveAssignment();
+            uiElements.cancelAssignmentButton.onclick = () => AppLogic.Admin.Assignments.closeAssignmentModal();
+            uiElements.touchableBox.onclick = () => showScreen('loginFormScreen');
+            uiElements.cancelButton.onclick = () => showScreen('mainAppScreen');
+            uiElements.logoutButton.onclick = () => AppLogic.Auth.logout();
+            uiElements.bitacoraButton.onclick = () => AppLogic.Bitacora.show();
+            uiElements.goToCompanySelectionButton.onclick = () => showScreen('companySelectionScreen');
+            
+            // Listeners de Administración
+            uiElements.manageUnitsButton.onclick = () => { showScreen('unitAdminScreen'); AppLogic.Admin.Units.populateList(); };
+            uiElements.refreshUnitsButton.onclick = () => AppLogic.Admin.Units.populateList();
+            uiElements.saveUnitButton.onclick = () => AppLogic.Admin.Units.save();
+            uiElements.cancelUnitEditButton.onclick = () => AppLogic.Admin.Units.displayFormForAdd();
+            uiElements.manageOperatorsButton.onclick = () => showScreen('operatorMainSelectionScreen');
+            uiElements.manageAddOperatorButton.onclick = () => { showScreen('operatorAdminScreen'); AppLogic.Admin.Operators.displayFormForAdd(); };
+            uiElements.manageEditOperatorButton.onclick = () => { showScreen('operatorEditScreen'); AppLogic.Admin.Operators.populateList();};
+            uiElements.refreshOperatorsButton.onclick = () => AppLogic.Admin.Operators.populateList();
+            uiElements.saveOperatorButton.onclick = () => AppLogic.Admin.Operators.save();
+            uiElements.cancelOperatorEditButton.onclick = () => { AppLogic.Admin.Operators.displayFormForAdd(); showScreen('operatorEditScreen'); };
+            uiElements.manageUsersButton.onclick = () => showScreen('userAdminScreen');
+            uiElements.addUserButton.onclick = () => AppLogic.Admin.Users.add();
+            
+            // Listeners del Flujo de Registro
+            document.querySelectorAll('.company-button').forEach(btn => btn.onclick = () => AppLogic.Registration.start(btn.textContent));
+            uiElements.confirmBitacoraButton.onclick = () => showScreen('kmRegistroScreen');
+            uiElements.confirmKmRegistroButton.onclick = () => showScreen('litrosDieselScreen');
+            uiElements.confirmLitrosDieselButton.onclick = () => showCustomConfirm({
+                message: "<b>¿Registrar combustible en ruta?</b>",
+                iconHtml: `<img src="${dieselImageUrl}" class="mx-auto h-20 w-auto">`,
+                onConfirm: () => showScreen('litrosAutoScreen'),
+                onCancel: () => showScreen('litrosUreaScreen')
+            });
+            uiElements.confirmLitrosAutoButton.onclick = () => showScreen('litrosUreaScreen');
+            uiElements.confirmLitrosUreaButton.onclick = () => showScreen('sellosScreen');
+            uiElements.confirmSellosButton.onclick = () => showScreen('totalizadorLitrosScreen');
+            uiElements.confirmTotalizadorLitrosButton.onclick = () => AppLogic.Registration.showPhotoScreen();
+            uiElements.takePictureButton.onclick = () => AppLogic.Registration.takePicture();
+            uiElements.retryPictureButton.onclick = () => AppLogic.Registration.retryPicture();
+            uiElements.confirmPhotoButton.onclick = () => AppLogic.Registration.uploadPhotoAndFinalize();
+            uiElements.kmInicioInput.oninput = () => AppLogic.Registration.updateKmRecorridos();
+            uiElements.kmFinInput.oninput = () => AppLogic.Registration.updateKmRecorridos();
+            uiElements.addSealButton.onclick = () => AppLogic.Registration.addSeal();
+            uiElements.newRegistrationButton.onclick = () => AppLogic.Registration.startQRScan();
+            uiElements.goToHomeButton.onclick = () => AppLogic.Auth.logout();
+            uiElements.generateBitacoraButton.onclick = () => AppLogic.Bitacora.generate();
+            
+             uiElements.unitSearchInput.addEventListener('input', () => {
+                const searchTerm = uiElements.unitSearchInput.value.toLowerCase();
+                const unitButtons = uiElements.unitButtonGrid.querySelectorAll('.unit-button');
+                let found = false;
+                unitButtons.forEach(button => {
+                    const isVisible = button.textContent.toLowerCase().includes(searchTerm);
+                    button.style.display = isVisible ? 'flex' : 'none';
+                    if(isVisible) found = true;
+                });
+                uiElements.unitSearchNotFoundMessage.classList.toggle('hidden', found);
+            });
+
+            uiElements.operatorSearchInput.addEventListener('input', () => AppLogic.Registration.renderOperatorResults(uiElements.operatorSearchInput.value));
+
+            // Botones "Volver"
+            const backButtons = {
+                backToDashboardFromAdminMain: 'dashboardScreen', 
+                backToAdminMainFromUnitAdmin: 'adminMainSelectionScreen',
+                backToAdminMainFromAssignment: 'adminMainSelectionScreen',
+                backToAdminMainFromOperatorMain: 'adminMainSelectionScreen', 
+                backToOperatorMainSelection: 'operatorMainSelectionScreen',
+                backToOperatorMainSelectionFromEdit: 'operatorMainSelectionScreen', 
+                backToAdminMainFromUserAdmin: 'adminMainSelectionScreen',
+                backToDashboardFromCompany: 'dashboardScreen', 
+                backToCompanySelection: 'companySelectionScreen',
+                backToUnitsFromOperator: 'checkinScreen', 
+                backToOperatorSelectionFromBitacora: 'operatorSelectionScreen',
+                backToBitacoraNumber: 'bitacoraNumberScreen', 
+                backToKmRegistro: 'kmRegistroScreen', 
+                backToLitrosDieselFromAuto: 'litrosDieselScreen',
+                backToLitrosAuto: 'litrosAutoScreen', 
+                backToLitrosUrea: 'sellosScreen',
+                backToSellos: 'totalizadorLitrosScreen', 
+                backToTotalizador: 'totalizadorLitrosScreen',
+                backToDashboardFromBitacora: 'dashboardScreen',
+                backToDashboardFromQR: 'dashboardScreen'
+            };
+            for (const [btnId, screenId] of Object.entries(backButtons)) {
+                if(uiElements[btnId]) uiElements[btnId].onclick = () => handleBackNavigation(screenId);
+            }
+
+            showScreen('mainAppScreen');
+        });
+    </script>
+</body>
+</html>
+
