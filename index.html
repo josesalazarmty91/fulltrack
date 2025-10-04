@@ -687,6 +687,83 @@
             100% { top: 5%; }
         }
         /* ========================================================= */
+
+        /* ===== ESTILOS PARA EL PANEL DE RESUMEN DE REGISTRO ===== */
+        #registrationSummaryContainer {
+            position: fixed;
+            bottom: 0;
+            left: 10px;
+            right: 10px;
+            background-color: rgba(11, 77, 154, 0.95); /* Azul Corporativo semi-transparente */
+            color: white;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+            padding: 0.5rem 1rem 1rem 1rem;
+            transform: translateY(100%);
+            transition: transform 0.4s ease-in-out;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        #registrationSummaryContainer.visible {
+            transform: translateY(0);
+        }
+
+        #summaryToggleButton {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f5851f; /* Naranja Energético */
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+        }
+         #summaryToggleButton svg {
+            transition: transform 0.3s ease;
+        }
+        #registrationSummaryContainer.expanded #summaryToggleButton svg {
+            transform: rotate(180deg);
+        }
+
+        #summaryContent {
+            display: none; /* Oculto por defecto, se muestra al expandir */
+            padding-top: 1rem;
+            font-size: 0.8rem;
+            text-align: left;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem 1rem;
+        }
+        #registrationSummaryContainer.expanded #summaryContent {
+            display: grid;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .summary-item-label {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+        .summary-item-value {
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* ======================================================== */
     </style>
 </head>
 <body>
@@ -1122,6 +1199,40 @@
             <button id="backToDashboardFromBitacora" class="login-button go-back-button">Volver al Dashboard</button>
         </div>
     </div>
+    
+    <!-- ===== NUEVO PANEL DE RESUMEN DE REGISTRO ===== -->
+    <div id="registrationSummaryContainer">
+        <button id="summaryToggleButton">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+        </button>
+        <div id="summaryContent">
+            <div class="summary-item">
+                <span class="summary-item-label">Unidad</span>
+                <span id="summaryUnit" class="summary-item-value">-</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-item-label">Operador</span>
+                <span id="summaryOperator" class="summary-item-value">-</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-item-label">Bitácora</span>
+                <span id="summaryBitacora" class="summary-item-value">-</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-item-label">KM Recorridos</span>
+                <span id="summaryKm" class="summary-item-value">-</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-item-label">Litros</span>
+                <span id="summaryLitros" class="summary-item-value">-</span>
+            </div>
+             <div class="summary-item">
+                <span class="summary-item-label">Sellos</span>
+                <span id="summarySeals" class="summary-item-value">-</span>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================= -->
 
 
     <script type="module">
@@ -1161,6 +1272,14 @@
                     qrScannerStream.getTracks().forEach(track => track.stop());
                     qrScannerStream = null;
                 }
+            }
+            
+            // Lógica para mostrar u ocultar el panel de resumen
+            const registrationScreens = ['checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen'];
+            if(registrationScreens.includes(screenId)) {
+                uiElements.registrationSummaryContainer.classList.add('visible');
+            } else {
+                uiElements.registrationSummaryContainer.classList.remove('visible');
             }
 
             Object.values(allScreens).forEach(screen => screen && screen.classList.remove('active'));
@@ -1270,6 +1389,28 @@
             uiElements.fullscreenButton.innerHTML = document.fullscreenElement ? exitFullscreenIcon : enterFullscreenIcon;
         }
 
+        function updateRegistrationSummary() {
+            uiElements.summaryUnit.textContent = selectedUnit || '-';
+            uiElements.summaryOperator.textContent = selectedOperator || '-';
+            uiElements.summaryBitacora.textContent = uiElements.bitacoraNumberInput.value || '-';
+            
+            const kmInicioVal = parseFloat(uiElements.kmInicioInput.value);
+            const kmFinVal = parseFloat(uiElements.kmFinInput.value);
+            if (!isNaN(kmInicioVal) && !isNaN(kmFinVal) && kmFinVal >= kmInicioVal) {
+                uiElements.summaryKm.textContent = `${(kmFinVal - kmInicioVal).toFixed(2)} km`;
+            } else {
+                uiElements.summaryKm.textContent = '-';
+            }
+
+            const litrosDieselVal = parseFloat(uiElements.litrosTotalesInput.value) || 0;
+            const litrosAutoVal = parseFloat(uiElements.litrosAutoInput.value) || 0;
+            const litrosUreaVal = parseFloat(uiElements.litrosUreaInput.value) || 0;
+            const totalLitros = litrosDieselVal + litrosAutoVal + litrosUreaVal;
+            uiElements.summaryLitros.textContent = totalLitros > 0 ? `${totalLitros.toFixed(2)} L` : '-';
+
+            uiElements.summarySeals.textContent = collectedSeals.length > 0 ? `${collectedSeals.length} sello(s)` : '-';
+        }
+
         // --- Lógica de la aplicación ---
         const AppLogic = {
             Auth: {
@@ -1377,6 +1518,7 @@
                     if(uiElements.operatorResultsList) uiElements.operatorResultsList.innerHTML = '';
                     if(uiElements.kmRecorridosDisplay) uiElements.kmRecorridosDisplay.textContent = '0.00';
                     if(uiElements.sealListDisplay) uiElements.sealListDisplay.innerHTML = '';
+                    updateRegistrationSummary(); // Limpia el panel
                 },
                 async startQRScan() {
                     showScreen('qrScannerScreen');
@@ -1420,22 +1562,18 @@
                         const qrData = JSON.parse(data);
                         if (!qrData.id) throw new Error("QR sin ID de unidad.");
                         
-                        // Consultar la unidad para obtener el operador asignado
                         const result = await callApi(`units.php?id=${qrData.id}`);
                         if(result.success && result.data){
                             const unitData = result.data;
                             selectedCompany = unitData.company;
-                            selectedUnit = unitData.unit_number;
+                            this.selectUnit(unitData.unit_number); 
 
                             if(unitData.assigned_operator_id && unitData.assigned_operator_name){
-                                // CASO A: Operador asignado
-                                selectedOperator = unitData.assigned_operator_name;
-                                showToast(`Unidad ${selectedUnit} y Operador '${selectedOperator}' cargados.`, 'success');
-                                showScreen('bitacoraNumberScreen'); // Saltar a bitácora
+                                showToast(`Unidad ${unitData.unit_number} cargada. Operador asignado: ${unitData.assigned_operator_name}.`, 'success');
+                                this.confirmOperator(unitData.assigned_operator_name);
+                                showScreen('bitacoraNumberScreen'); 
                             } else {
-                                // CASO B: Sin operador asignado
-                                showToast(`Unidad ${selectedUnit} cargada. Selecciona un operador.`, 'info');
-                                this.selectUnit(selectedUnit); // Ir a selección manual de operador
+                                showToast(`Unidad ${unitData.unit_number} cargada. Selecciona un operador.`, 'info');
                             }
                         } else {
                              throw new Error("Unidad no encontrada en la base de datos.");
@@ -1453,6 +1591,7 @@
                 async start(companyName) {
                     selectedCompany = companyName;
                     showScreen('checkinScreen');
+                    updateRegistrationSummary();
                     const { unitButtonGrid, unitLoadMessage } = uiElements;
                     unitButtonGrid.innerHTML = '';
                     unitLoadMessage.classList.remove('hidden');
@@ -1471,6 +1610,7 @@
                 async selectUnit(unitNumber) {
                     selectedUnit = unitNumber;
                     showScreen('operatorSelectionScreen');
+                    updateRegistrationSummary();
                     uiElements.operatorSearchInput.value = '';
                     uiElements.operatorResultsList.innerHTML = '';
                     uiElements.operatorSearchNotFoundMessage.classList.add('hidden');
@@ -1500,6 +1640,7 @@
                     if (!operatorName) { showToast('Selecciona un operador.', 'error'); return; }
                     selectedOperator = operatorName;
                     showScreen('bitacoraNumberScreen');
+                    updateRegistrationSummary();
                 },
                 updateKmRecorridos() {
                     const { kmInicioInput, kmFinInput, kmRecorridosDisplay, kmRegistroMessage } = uiElements;
@@ -1513,6 +1654,7 @@
                             kmRegistroMessage.textContent = 'KM Fin no puede ser menor al de Inicio.';
                         }
                     }
+                    updateRegistrationSummary();
                 },
                 addSeal() {
                     const { sealInput, sealInputMessage } = uiElements;
@@ -1537,6 +1679,7 @@
                         };
                         uiElements.sealListDisplay.appendChild(li);
                     });
+                    updateRegistrationSummary();
                 },
                 async showPhotoScreen() {
                     showScreen('photoUploadScreen');
@@ -1884,12 +2027,21 @@
             const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen'];
             screenIds.forEach(id => allScreens[id] = document.getElementById(id));
             
-            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer'];
+            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals'];
             uiElementIds.forEach(id => uiElements[id] = document.getElementById(id));
 
             uiElements.fullscreenButton.onclick = toggleFullScreen;
             document.addEventListener('fullscreenchange', updateFullscreenButton);
             updateFullscreenButton();
+
+            // ===== Lógica del Panel de Resumen =====
+            uiElements.summaryToggleButton.onclick = () => {
+                uiElements.registrationSummaryContainer.classList.toggle('expanded');
+            };
+            // Inicia colapsado por defecto
+            uiElements.registrationSummaryContainer.classList.remove('expanded');
+            // ======================================
+
 
             // Event Listeners Principales
             uiElements.loginButton.onclick = () => AppLogic.Auth.login();
@@ -1920,18 +2072,28 @@
             
             // Listeners del Flujo de Registro
             document.querySelectorAll('.company-button').forEach(btn => btn.onclick = () => AppLogic.Registration.start(btn.textContent));
-            uiElements.confirmBitacoraButton.onclick = () => showScreen('kmRegistroScreen');
-            uiElements.confirmKmRegistroButton.onclick = () => showScreen('litrosDieselScreen');
-            uiElements.confirmLitrosDieselButton.onclick = () => showCustomConfirm({
-                message: "<b>¿Registrar combustible en ruta?</b>",
-                iconHtml: `<img src="${dieselImageUrl}" class="mx-auto h-20 w-auto">`,
-                onConfirm: () => showScreen('litrosAutoScreen'),
-                onCancel: () => showScreen('litrosUreaScreen')
-            });
-            uiElements.confirmLitrosAutoButton.onclick = () => showScreen('litrosUreaScreen');
-            uiElements.confirmLitrosUreaButton.onclick = () => showScreen('sellosScreen');
-            uiElements.confirmSellosButton.onclick = () => showScreen('totalizadorLitrosScreen');
-            uiElements.confirmTotalizadorLitrosButton.onclick = () => AppLogic.Registration.showPhotoScreen();
+            uiElements.confirmBitacoraButton.onclick = () => { showScreen('kmRegistroScreen'); updateRegistrationSummary(); };
+            uiElements.confirmKmRegistroButton.onclick = () => { showScreen('litrosDieselScreen'); updateRegistrationSummary(); };
+            uiElements.confirmLitrosDieselButton.onclick = () => {
+                updateRegistrationSummary();
+                showCustomConfirm({
+                    message: "<b>¿Registrar combustible en ruta?</b>",
+                    iconHtml: `<img src="${dieselImageUrl}" class="mx-auto h-20 w-auto">`,
+                    onConfirm: () => showScreen('litrosAutoScreen'),
+                    onCancel: () => showScreen('litrosUreaScreen')
+                });
+            };
+            uiElements.confirmLitrosAutoButton.onclick = () => { showScreen('litrosUreaScreen'); updateRegistrationSummary(); };
+            uiElements.confirmLitrosUreaButton.onclick = () => { showScreen('sellosScreen'); updateRegistrationSummary(); };
+            uiElements.confirmSellosButton.onclick = () => { showScreen('totalizadorLitrosScreen'); updateRegistrationSummary(); };
+            uiElements.confirmTotalizadorLitrosButton.onclick = () => { AppLogic.Registration.showPhotoScreen(); updateRegistrationSummary(); };
+            
+            // Listeners de actualización de resumen en tiempo real
+            uiElements.bitacoraNumberInput.oninput = updateRegistrationSummary;
+            uiElements.litrosTotalesInput.oninput = updateRegistrationSummary;
+            uiElements.litrosAutoInput.oninput = updateRegistrationSummary;
+            uiElements.litrosUreaInput.oninput = updateRegistrationSummary;
+
             uiElements.takePictureButton.onclick = () => AppLogic.Registration.takePicture();
             uiElements.retryPictureButton.onclick = () => AppLogic.Registration.retryPicture();
             uiElements.confirmPhotoButton.onclick = () => AppLogic.Registration.uploadPhotoAndFinalize();
@@ -1988,3 +2150,4 @@
     </script>
 </body>
 </html>
+
