@@ -1604,7 +1604,12 @@
                     };
 
                     try {
-                        const apiKey = ""; 
+                        // --- INICIO DE LA MODIFICACIÓN ---
+                        // Para depuración: Pega aquí la clave de API temporal si la proporcionada por el entorno falla.
+                        const tempApiKey = "AQUÍ_VA_LA_CLAVE_TEMPORAL"; 
+                        const apiKey = tempApiKey; // Usamos la clave temporal para la prueba.
+                        // --- FIN DE LA MODIFICACIÓN ---
+
                         const response = await fetch(`${GEMINI_API_URL}${apiKey}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -2312,4 +2317,5 @@
     </script>
 </body>
 </html>
+" because it is the most relevant to my query. I have made a selection in the document. What do you want to do with this selection?
 
