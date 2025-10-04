@@ -751,6 +751,7 @@
         }
         #registrationSummaryContainer.expanded #summaryContent {
             display: grid;
+            grid-template-columns: repeat(2, 1fr);
         }
 
         .summary-item {
@@ -769,6 +770,30 @@
             text-overflow: ellipsis;
         }
         /* ======================================================== */
+
+        /* ===== ESTILOS PARA EL BOTÓN DE VOZ ===== */
+        .voice-button {
+            padding: 0.75rem;
+            background-color: #f5851f; /* Naranja Energético */
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .voice-button:hover {
+            background-color: #e47511;
+        }
+        .voice-button.listening {
+            animation: pulse-orange 1.5s infinite;
+        }
+        @keyframes pulse-orange {
+            0% { box-shadow: 0 0 0 0 rgba(245, 133, 31, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 133, 31, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 133, 31, 0); }
+        }
+        /* ======================================= */
     </style>
 </head>
 <body>
@@ -1116,6 +1141,10 @@
             </p>
             <div class="input-with-button-group">
                 <input type="number" id="sealInput" placeholder="Número de sello" class="login-input">
+                <!-- NUEVO BOTÓN DE VOZ -->
+                <button id="sealVoiceButton" class="voice-button" title="Dictar número de sello">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+                </button>
                 <button id="addSealButton" class="login-button w-auto px-4 py-2">Agregar Sello</button>
             </div>
             <p id="sealInputMessage" class="text-sm text-red-600 mb-4 w-full text-left"></p>
@@ -1243,6 +1272,7 @@
     <script type="module">
         // URL base de la API
         const API_BASE_URL = 'https://grupoamalgama.com.mx/fulltrack/api/'; 
+        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=';
 
         // Estado de la aplicación
         let currentLoggedInUser = { username: '', userType: '' };
@@ -1256,6 +1286,7 @@
         let cameraStream = null, qrScannerStream = null;
         let isScanning = false;
         let currentAssignmentUnit = null;
+        let speechRecognition = null;
 
         // Referencias a elementos del DOM
         let allScreens = {}, uiElements = {};
@@ -1415,10 +1446,11 @@
 
             uiElements.summarySeals.textContent = collectedSeals.length > 0 ? `${collectedSeals.length} sello(s)` : '-';
         }
-
+        
         // --- Lógica de la aplicación ---
         const AppLogic = {
             Auth: {
+                // ... (Auth logic remains the same)
                 async login() {
                     const { usernameInput, passwordInput, loginMessage } = uiElements;
                     if (!usernameInput.value || !passwordInput.value) {
@@ -1449,6 +1481,7 @@
                 }
             },
             Bitacora: {
+                // ... (Bitacora logic remains the same)
                 async show() {
                     showScreen('bitacoraScreen');
                     await this.populateUnitFilter();
@@ -1511,7 +1544,105 @@
                     `;
                 }
             },
+            Voice: {
+                // --- NUEVO MÓDULO PARA COMANDOS DE VOZ ---
+                startRecognition(context) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (!SpeechRecognition) {
+                        showToast('El reconocimiento de voz no es compatible con este navegador.', 'error');
+                        return;
+                    }
+                    if (speechRecognition && speechRecognition.isListening) return; // Evitar múltiples instancias
+
+                    speechRecognition = new SpeechRecognition();
+                    speechRecognition.lang = 'es-MX';
+                    speechRecognition.interimResults = false;
+                    speechRecognition.maxAlternatives = 1;
+
+                    speechRecognition.onstart = () => {
+                        speechRecognition.isListening = true;
+                        uiElements.sealVoiceButton.classList.add('listening');
+                        showToast('Escuchando...', 'info', 2000);
+                    };
+
+                    speechRecognition.onresult = async (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        showToast(`Has dicho: "${transcript}"`, 'info');
+                        await this.interpretCommand(transcript, context);
+                    };
+
+                    speechRecognition.onerror = (event) => {
+                        if (event.error !== 'no-speech') {
+                           showToast(`Error de voz: ${event.error}`, 'error');
+                        }
+                    };
+
+                    speechRecognition.onend = () => {
+                        speechRecognition.isListening = false;
+                        uiElements.sealVoiceButton.classList.remove('listening');
+                    };
+
+                    speechRecognition.start();
+                },
+
+                async interpretCommand(text, context) {
+                    const systemPrompt = `Eres un asistente de entrada de datos para una app de logística. Tu tarea es interpretar el texto del usuario, extraer una acción y un valor numérico, y responder únicamente en formato JSON. Las acciones válidas son "agregar_sello", "ingresar_km", "ingresar_litros". Convierte las palabras a números. Ejemplo: "sello uno dos tres" resulta en {"action": "agregar_sello", "value": 123}.`;
+
+                    const payload = {
+                        contents: [{ parts: [{ text: text }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    action: { type: "STRING" },
+                                    value: { type: "NUMBER" }
+                                }
+                            }
+                        }
+                    };
+
+                    try {
+                        const apiKey = ""; 
+                        const response = await fetch(`${GEMINI_API_URL}${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) throw new Error('Error en la respuesta de Gemini.');
+
+                        const result = await response.json();
+                        const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (jsonText) {
+                            const command = JSON.parse(jsonText);
+                            this.executeCommand(command, context);
+                        } else {
+                            throw new Error('No se pudo interpretar el comando.');
+                        }
+                    } catch (error) {
+                        console.error('Error al interpretar con Gemini:', error);
+                        showToast('No pude entender esa orden.', 'error');
+                    }
+                },
+
+                executeCommand(command, context) {
+                    if (!command || !command.action) {
+                        showToast('Comando no reconocido.', 'info');
+                        return;
+                    }
+                    // Validar que el contexto coincide con la acción
+                    if (command.action === 'agregar_sello' && context === 'sellos') {
+                        uiElements.sealInput.value = command.value;
+                        AppLogic.Registration.addSeal();
+                    } else {
+                        showToast('Comando no válido para esta pantalla.', 'error');
+                    }
+                }
+            },
             Registration: {
+                // ... (Existing Registration logic)
                 resetData() {
                     selectedCompany = ''; selectedUnit = ''; selectedOperator = ''; bitacoraNumber = null;
                     kmHubodometro = null; kmInicio = null; kmFin = null; litrosTotales = null;
@@ -1758,6 +1889,7 @@
                 }
             },
             Admin: {
+                // ... (Admin logic remains the same)
                 Units: {
                     async save() {
                         const { newUnitNumberInput, newUnitCompanySelect, unitAdminMessage } = uiElements;
@@ -2036,7 +2168,7 @@
             const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen'];
             screenIds.forEach(id => allScreens[id] = document.getElementById(id));
             
-            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals'];
+            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals', 'sealVoiceButton'];
             uiElementIds.forEach(id => uiElements[id] = document.getElementById(id));
 
             uiElements.fullscreenButton.onclick = toggleFullScreen;
@@ -2047,9 +2179,10 @@
             uiElements.summaryToggleButton.onclick = () => {
                 uiElements.registrationSummaryContainer.classList.toggle('expanded');
             };
-            // Inicia colapsado por defecto
             uiElements.registrationSummaryContainer.classList.remove('expanded');
-            // ======================================
+            
+            // ===== Lógica del Botón de Voz =====
+            uiElements.sealVoiceButton.onclick = () => AppLogic.Voice.startRecognition('sellos');
 
 
             // Event Listeners Principales
@@ -2082,7 +2215,6 @@
             // Listeners del Flujo de Registro
             document.querySelectorAll('.company-button').forEach(btn => btn.onclick = () => AppLogic.Registration.start(btn.textContent));
             
-            // --- MODIFICADO: Lógica para cargar el último KM ---
             uiElements.confirmBitacoraButton.onclick = async () => {
                 showToast('Buscando último KM registrado...', 'info');
                 const result = await callApi(`registrations.php?lastKmForUnit=${selectedUnit}`);
@@ -2093,12 +2225,10 @@
                 } else {
                     uiElements.kmInicioInput.value = '';
                     uiElements.kmInicioInput.readOnly = false;
-                    // No mostramos toast si no hay registro previo, es el flujo normal.
                 }
                 updateRegistrationSummary();
                 showScreen('kmRegistroScreen');
             };
-            // ----------------------------------------------------
 
             uiElements.confirmKmRegistroButton.onclick = () => { showScreen('litrosDieselScreen'); updateRegistrationSummary(); };
             uiElements.confirmLitrosDieselButton.onclick = () => {
