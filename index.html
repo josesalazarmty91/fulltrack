@@ -1611,7 +1611,12 @@
                             body: JSON.stringify(payload)
                         });
 
-                        if (!response.ok) throw new Error('Error en la respuesta de Gemini.');
+                        if (!response.ok) {
+                            // --- MEJORA DE MANEJO DE ERRORES ---
+                            let errorBody = await response.json();
+                            console.error('Error from Gemini API:', JSON.stringify(errorBody, null, 2));
+                            throw new Error(`Error ${response.status} de la API de Gemini. Revisa la consola para más detalles.`);
+                        }
 
                         const result = await response.json();
                         const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -1623,7 +1628,7 @@
                         }
                     } catch (error) {
                         console.error('Error al interpretar con Gemini:', error);
-                        showToast('No pude entender esa orden.', 'error');
+                        showToast(error.message || 'No pude entender esa orden.', 'error');
                     }
                 },
 
