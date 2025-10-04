@@ -13,8 +13,13 @@ $method = $_SERVER['REQUEST_METHOD'];
 // El switch determina si se está pidiendo datos (GET) o enviando datos (POST)
 switch ($method) {
     case 'GET':
-        // Llama a la función para obtener registros (con la lógica de filtros corregida)
-        handleGetRegistrations($conn, $_GET);
+        // NUEVA LÓGICA: Verificar si se está pidiendo el último KM para una unidad
+        if (isset($_GET['lastKmForUnit'])) {
+            handleGetLastKmForUnit($conn, $_GET['lastKmForUnit']);
+        } else {
+            // Lógica existente para obtener la bitácora
+            handleGetRegistrations($conn, $_GET);
+        }
         break;
     case 'POST':
         // Llama a la función para agregar un nuevo registro
@@ -26,6 +31,57 @@ switch ($method) {
         echo json_encode(["success" => false, "message" => "Método no permitido."]);
         break;
 }
+
+/**
+ * NUEVA FUNCIÓN: Obtiene el km_fin del último registro para una unidad específica.
+ * @param mysqli $conn Conexión a la base de datos.
+ * @param string $unitNumber El número de la unidad a consultar.
+ */
+function handleGetLastKmForUnit($conn, $unitNumber) {
+    // 1. Obtener el ID de la unidad a partir de su número
+    $stmt = $conn->prepare("SELECT id FROM units WHERE unit_number = ?");
+    if (!$stmt) {
+        http_response_code(500);
+        echo json_encode(["success" => false, "message" => "Error al preparar la consulta de unidad."]);
+        return;
+    }
+    $stmt->bind_param("s", $unitNumber);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        // No se encontró la unidad, pero no es un error fatal.
+        // Puede ser el primer registro de esta unidad.
+        echo json_encode(["success" => true, "lastKmFin" => null]);
+        $stmt->close();
+        return;
+    }
+    
+    $unit = $result->fetch_assoc();
+    $unitId = $unit['id'];
+    $stmt->close();
+
+    // 2. Buscar el último registro para esa unidad y obtener el km_fin
+    $stmt = $conn->prepare("SELECT km_fin FROM registros_entrada WHERE unit_id = ? ORDER BY timestamp DESC LIMIT 1");
+    if (!$stmt) {
+        http_response_code(500);
+        echo json_encode(["success" => false, "message" => "Error al preparar la consulta de registro."]);
+        return;
+    }
+    $stmt->bind_param("i", $unitId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $lastKmFin = null;
+    if ($row = $result->fetch_assoc()) {
+        $lastKmFin = $row['km_fin'];
+    }
+
+    http_response_code(200);
+    echo json_encode(["success" => true, "lastKmFin" => $lastKmFin]);
+    $stmt->close();
+}
+
 
 /**
  * Maneja la obtención de registros, aplicando los filtros de manera correcta.
