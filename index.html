@@ -405,7 +405,7 @@
         .data-table .delete-button { background-color: #ef4444; }
         .data-table .delete-button:hover { background-color: #dc2626; }
 
-        .data-table .qr-button, .data-table .assign-button, .data-table .service-button {
+        .data-table .qr-button, .data-table .assign-button, .data-table .service-button, .data-table .token-button {
             background-color: #10b981; /* Verde */
             color: white;
             border-radius: 0.375rem;
@@ -415,7 +415,7 @@
             transition: background-color 0.2s ease;
             margin-left: 0.5rem;
         }
-        .data-table .qr-button:hover, .data-table .assign-button:hover, .data-table .service-button:hover { background-color: #059669; }
+        .data-table .qr-button:hover, .data-table .assign-button:hover, .data-table .service-button:hover, .data-table .token-button:hover { background-color: #059669; }
 
 
         .bitacora-filter-group {
@@ -923,6 +923,7 @@
                 <button id="manageOperatorsButton" class="admin-selection-button">Operadores</button>
                 <button id="manageAssignmentsButton" class="admin-selection-button">Asignar Operador</button>
                 <button id="manageMaintenanceButton" class="admin-selection-button" style="background-color: #1d4ed8;">Mantenimiento</button>
+                <button id="manageAuthorizationButton" class="admin-selection-button" style="background-color: #ca8a04;">Autorizar Unidades</button>
                 <button id="manageUsersButton" class="admin-selection-button">Usuarios</button>
             </div>
             <button id="backToDashboardFromAdminMain" class="login-button go-back-button">Volver al Dashboard</button>
@@ -950,6 +951,24 @@
             </div>
             <p id="maintenanceListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando unidades...</p>
             <button id="backToAdminMainFromMaintenance" class="login-button go-back-button">Volver a Administración</button>
+        </div>
+        <!-- ==================================================================== -->
+
+        <!-- =================== NUEVA PANTALLA DE AUTORIZACIÓN =================== -->
+        <div id="supervisorAuthorizationScreen" class="app-container" style="max-width: 90vw;">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Autorizar Unidades Bloqueadas</h2>
+             <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="description-icon"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"></path></svg>
+                <span>Genera un token de un solo uso para despachar una unidad bloqueada.</span>
+            </p>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead><tr><th>Unidad Bloqueada</th><th>Acción</th></tr></thead>
+                    <tbody id="supervisorBlockedUnitsTableBody"></tbody>
+                </table>
+            </div>
+             <p id="supervisorBlockedUnitsMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando unidades bloqueadas...</p>
+            <button id="backToAdminMainFromAuthorization" class="login-button go-back-button">Volver a Administración</button>
         </div>
         <!-- ==================================================================== -->
         
@@ -1477,6 +1496,10 @@
             uiElements.customModalImageContainer.innerHTML = iconHtml;
             uiElements.customModalConfirmButton.textContent = confirmText;
             uiElements.customModalCancelButton.textContent = cancelText;
+            
+            // Asegurarse de que ambos botones sean visibles por defecto
+            uiElements.customModalConfirmButton.style.display = 'inline-block';
+            uiElements.customModalCancelButton.style.display = 'inline-block';
 
             uiElements.customModalConfirmButton.onclick = () => {
                 hideModal();
@@ -1558,7 +1581,7 @@
                     loginMessage.textContent = 'Verificando...';
                     const result = await callApi('users.php', 'POST', { action: 'login', username: usernameInput.value, password: passwordInput.value });
                     if (result.success) {
-                        currentLoggedInUser = { username: usernameInput.value, userType: result.userType };
+                        currentLoggedInUser = { username: usernameInput.value, userType: result.userType, id: result.userId };
                         uiElements.welcomeGreeting.textContent = `¡Hola, ${currentLoggedInUser.username}!`;
                         this.applyPermissions();
                         showScreen('dashboardScreen');
@@ -1567,7 +1590,7 @@
                     }
                 },
                 logout() {
-                    currentLoggedInUser = { username: '', userType: '' };
+                    currentLoggedInUser = { username: '', userType: '', id: null };
                     AppLogic.Registration.resetData();
                     uiElements.usernameInput.value = '';
                     uiElements.passwordInput.value = '';
@@ -1577,7 +1600,8 @@
                 applyPermissions() {
                     const isAdmin = currentLoggedInUser.userType === 'Administrador';
                     uiElements.adminButton.classList.toggle('hidden', !isAdmin);
-                    uiElements.manageMaintenanceButton.classList.toggle('hidden', !isAdmin); // Ocultar si no es admin
+                    uiElements.manageMaintenanceButton.classList.toggle('hidden', !isAdmin);
+                    uiElements.manageAuthorizationButton.classList.toggle('hidden', !isAdmin);
                 }
             },
             Bitacora: {
@@ -1645,7 +1669,7 @@
                 }
             },
             Voice: {
-                // --- MÓDULO PARA COMANDOS DE VOZ ---
+                // ... (Voice logic remains the same)
                 startRecognition(context) {
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     if (!SpeechRecognition) {
@@ -1841,6 +1865,22 @@
                         const result = await callApi(`units.php?id=${qrData.id}`);
                         if(result.success && result.data){
                             const unitData = result.data;
+
+                            if (unitData.estado_mantenimiento === 'BLOQUEADO') {
+                                showCustomConfirm({
+                                    message: `<b>¡MANTENIMIENTO REQUERIDO!</b><br>La unidad <strong>${unitData.unit_number}</strong> ha superado el intervalo de servicio de ${unitData.intervalo_mantenimiento_km} km y no puede ser despachada.`,
+                                    confirmText: 'Entendido',
+                                    onConfirm: () => {
+                                        // TODO: En Fase 4, aquí irá la lógica para el token.
+                                        AppLogic.Registration.startQRScan(); // Volver a escanear
+                                    },
+                                    onCancel: () => { // Ocultar botón de cancelar para forzar acción
+                                        uiElements.customModalCancelButton.style.display = 'none';
+                                    }
+                                });
+                                return; // Detener flujo
+                            }
+
                             selectedCompany = unitData.company;
                             this.selectUnit(unitData.unit_number); 
 
