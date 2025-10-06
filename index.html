@@ -346,10 +346,17 @@
             display: flex;
             width: 100%;
             gap: 0.5rem;
+            align-items: center; /* Alinear verticalmente */
+        }
+
+        .input-with-button-group .login-input {
+            margin-bottom: 0;
+            flex-grow: 1; /* El input ocupa el espacio restante */
+        }
+        .input-with-button-group.mb-4 {
             margin-bottom: 1rem;
         }
 
-        .input-with-button-group .login-input { margin-bottom: 0; }
 
         .data-table-container {
             width: 100%;
@@ -398,7 +405,7 @@
         .data-table .delete-button { background-color: #ef4444; }
         .data-table .delete-button:hover { background-color: #dc2626; }
 
-        .data-table .qr-button, .data-table .assign-button {
+        .data-table .qr-button, .data-table .assign-button, .data-table .service-button {
             background-color: #10b981; /* Verde */
             color: white;
             border-radius: 0.375rem;
@@ -408,7 +415,7 @@
             transition: background-color 0.2s ease;
             margin-left: 0.5rem;
         }
-        .data-table .qr-button:hover, .data-table .assign-button:hover { background-color: #059669; }
+        .data-table .qr-button:hover, .data-table .assign-button:hover, .data-table .service-button:hover { background-color: #059669; }
 
 
         .bitacora-filter-group {
@@ -466,7 +473,7 @@
             padding: 2rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             text-align: center;
-            max-width: 400px;
+            max-width: 450px;
             width: 90%;
             transform: translateY(-20px);
             transition: transform 0.3s ease;
@@ -781,6 +788,7 @@
             justify-content: center;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            flex-shrink: 0; /* Evita que el botón se encoja */
         }
         .voice-button:hover {
             background-color: #e47511;
@@ -825,6 +833,21 @@
             <div class="modal-buttons">
                 <button id="saveAssignmentButton" class="modal-button confirm">Guardar</button>
                 <button id="cancelAssignmentButton" class="modal-button cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para registrar mantenimiento -->
+    <div id="maintenanceModalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Registrar Servicio</h3>
+            <p id="maintenanceModalUnitInfo" class="text-gray-600 mb-4"></p>
+            <input type="number" id="maintenanceKmInput" placeholder="Kilometraje del servicio" class="login-input mb-4">
+            <input type="date" id="maintenanceDateInput" class="login-input mb-4">
+            <textarea id="maintenanceNotesInput" placeholder="Notas adicionales (opcional)" class="login-input mb-4" rows="3"></textarea>
+            <div class="modal-buttons">
+                <button id="saveMaintenanceButton" class="modal-button confirm">Guardar Servicio</button>
+                <button id="cancelMaintenanceButton" class="modal-button cancel">Cancelar</button>
             </div>
         </div>
     </div>
@@ -899,12 +922,37 @@
                 <button id="manageUnitsButton" class="admin-selection-button">Unidades</button>
                 <button id="manageOperatorsButton" class="admin-selection-button">Operadores</button>
                 <button id="manageAssignmentsButton" class="admin-selection-button">Asignar Operador</button>
+                <button id="manageMaintenanceButton" class="admin-selection-button" style="background-color: #1d4ed8;">Mantenimiento</button>
                 <button id="manageUsersButton" class="admin-selection-button">Usuarios</button>
             </div>
             <button id="backToDashboardFromAdminMain" class="login-button go-back-button">Volver al Dashboard</button>
         </div>
+
+        <!-- =================== NUEVA PANTALLA DE MANTENIMIENTO =================== -->
+        <div id="maintenanceAdminScreen" class="app-container" style="max-width: 90vw;">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Gestión de Mantenimiento</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="description-icon"><path d="M20.71 7.04c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34zM3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"></path></svg>
+                <span>Registra servicios y consulta el estado de las unidades.</span>
+            </p>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Unidad</th>
+                            <th>Intervalo (KM)</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenanceListTableBody"></tbody>
+                </table>
+            </div>
+            <p id="maintenanceListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando unidades...</p>
+            <button id="backToAdminMainFromMaintenance" class="login-button go-back-button">Volver a Administración</button>
+        </div>
+        <!-- ==================================================================== -->
         
-        <!-- =================== NUEVA PANTALLA DE ASIGNACIÓN =================== -->
         <div id="assignmentAdminScreen" class="app-container" style="max-width: 90vw;">
             <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Asignar Operadores a Unidades</h2>
              <p class="screen-description">
@@ -920,7 +968,6 @@
              <p id="assignmentListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando asignaciones...</p>
             <button id="backToAdminMainFromAssignment" class="login-button go-back-button">Volver a Administración</button>
         </div>
-        <!-- ==================================================================== -->
 
 
         <div id="unitAdminScreen" class="app-container">
@@ -1084,7 +1131,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
                 </button>
             </div>
-            <p class="text-xs text-gray-500 -mt-3 mb-4 italic">Ejemplo de voz: "bitácora uno dos tres cuatro"</p>
+            <p class="text-xs text-gray-500 -mt-3 mb-4 italic">Ejemplo de voz: "bitácora uno dos tres"</p>
             <button id="confirmBitacoraButton" class="login-button">Confirmar Bitácora</button>
             <p id="bitacoraMessage" class="text-sm text-red-600 mt-2"></p>
             <button id="backToOperatorSelectionFromBitacora" class="login-button go-back-button">Volver a Operadores</button>
@@ -1331,6 +1378,7 @@
         let isScanning = false;
         let currentAssignmentUnit = null;
         let speechRecognition = null;
+        let currentMaintenanceUnit = null;
 
         // Referencias a elementos del DOM
         let allScreens = {}, uiElements = {};
@@ -1410,16 +1458,18 @@
             }, duration);
         }
         
-        function hideModal() {
-            uiElements.customModalOverlay.classList.remove('visible');
-            uiElements.customModalImageContainer.innerHTML = ''; 
-            if(uiElements.customModalConfirmButton) uiElements.customModalConfirmButton.style.display = 'inline-block';
-            if(uiElements.customModalCancelButton) uiElements.customModalCancelButton.style.display = 'inline-block';
-            
-            const downloadBtn = document.getElementById('downloadQRButton');
-            if(downloadBtn) downloadBtn.remove();
-            const closeBtn = document.getElementById('closeQRModalButton');
-            if(closeBtn) closeBtn.remove();
+        function hideModal(modalId = 'customModalOverlay') {
+            document.getElementById(modalId).classList.remove('visible');
+            if (modalId === 'customModalOverlay') {
+                uiElements.customModalImageContainer.innerHTML = ''; 
+                if(uiElements.customModalConfirmButton) uiElements.customModalConfirmButton.style.display = 'inline-block';
+                if(uiElements.customModalCancelButton) uiElements.customModalCancelButton.style.display = 'inline-block';
+                
+                const downloadBtn = document.getElementById('downloadQRButton');
+                if(downloadBtn) downloadBtn.remove();
+                const closeBtn = document.getElementById('closeQRModalButton');
+                if(closeBtn) closeBtn.remove();
+            }
         }
         
         function showCustomConfirm({ message, iconHtml = '', confirmText = 'Sí', cancelText = 'No', onConfirm, onCancel }) {
@@ -1527,6 +1577,7 @@
                 applyPermissions() {
                     const isAdmin = currentLoggedInUser.userType === 'Administrador';
                     uiElements.adminButton.classList.toggle('hidden', !isAdmin);
+                    uiElements.manageMaintenanceButton.classList.toggle('hidden', !isAdmin); // Ocultar si no es admin
                 }
             },
             Bitacora: {
@@ -1741,10 +1792,9 @@
                     if(uiElements.kmRecorridosDisplay) uiElements.kmRecorridosDisplay.textContent = '0.00';
                     if(uiElements.sealListDisplay) uiElements.sealListDisplay.innerHTML = '';
                     
-                    // Asegurarse de que el campo KM Inicio sea editable para el próximo registro
                     if(uiElements.kmInicioInput) uiElements.kmInicioInput.readOnly = false;
 
-                    updateRegistrationSummary(); // Limpia el panel
+                    updateRegistrationSummary(); 
                 },
                 async startQRScan() {
                     showScreen('qrScannerScreen');
@@ -2243,18 +2293,81 @@
                         }
                     },
                     closeAssignmentModal() {
-                        uiElements.assignmentModalOverlay.classList.remove('visible');
+                        hideModal('assignmentModalOverlay');
                         currentAssignmentUnit = null;
+                    }
+                },
+                Maintenance: {
+                    show() {
+                        showScreen('maintenanceAdminScreen');
+                        this.populateList();
+                    },
+                    async populateList() {
+                        const { maintenanceListTableBody, maintenanceListMessage } = uiElements;
+                        maintenanceListTableBody.innerHTML = '';
+                        maintenanceListMessage.classList.remove('hidden');
+                        const result = await callApi('maintenance.php?action=units_for_maintenance');
+                        maintenanceListMessage.classList.add('hidden');
+
+                        if (result.success && result.data) {
+                            result.data.forEach(unit => {
+                                const row = maintenanceListTableBody.insertRow();
+                                const estadoClass = unit.estado_mantenimiento === 'OK' ? 'text-green-600' : 'text-red-600';
+                                row.innerHTML = `
+                                    <td>${unit.unit_number}</td>
+                                    <td>${unit.intervalo_mantenimiento_km}</td>
+                                    <td class="font-bold ${estadoClass}">${unit.estado_mantenimiento}</td>
+                                `;
+                                const actionCell = row.insertCell();
+                                const serviceBtn = document.createElement('button');
+                                serviceBtn.textContent = 'Registrar Servicio';
+                                serviceBtn.className = 'service-button';
+                                serviceBtn.onclick = () => this.openServiceModal(unit);
+                                actionCell.appendChild(serviceBtn);
+                            });
+                        }
+                    },
+                    openServiceModal(unit) {
+                        currentMaintenanceUnit = unit;
+                        uiElements.maintenanceModalUnitInfo.innerHTML = `Registrando servicio para la unidad: <strong>${unit.unit_number}</strong>`;
+                        uiElements.maintenanceKmInput.value = '';
+                        uiElements.maintenanceDateInput.value = new Date().toISOString().split('T')[0];
+                        uiElements.maintenanceNotesInput.value = '';
+                        document.getElementById('maintenanceModalOverlay').classList.add('visible');
+                    },
+                    async saveService() {
+                        const data = {
+                            unitId: currentMaintenanceUnit.id,
+                            kilometraje: uiElements.maintenanceKmInput.value,
+                            fecha: uiElements.maintenanceDateInput.value,
+                            notas: uiElements.maintenanceNotesInput.value,
+                        };
+                        
+                        if (!data.kilometraje || !data.fecha) {
+                            showToast('Kilometraje y fecha son requeridos.', 'error');
+                            return;
+                        }
+
+                        const result = await callApi('maintenance.php?action=register_service', 'POST', data);
+                        showToast(result.message, result.success ? 'success' : 'error');
+                        if (result.success) {
+                            hideModal('maintenanceModalOverlay');
+                            this.populateList();
+                        }
+                    },
+                    closeServiceModal() {
+                        hideModal('maintenanceModalOverlay');
+                        currentMaintenanceUnit = null;
                     }
                 }
             }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen'];
+            const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen', 'maintenanceAdminScreen'];
             screenIds.forEach(id => allScreens[id] = document.getElementById(id));
             
-            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals', 'sellosVoiceButton', 'bitacoraVoiceButton', 'litros_dieselVoiceButton', 'litros_ureaVoiceButton', 'totalizadorVoiceButton', 'km_inicioVoiceButton', 'km_finVoiceButton'];
+            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals', 'sellosVoiceButton', 'bitacoraVoiceButton', 'litros_dieselVoiceButton', 'litros_ureaVoiceButton', 'totalizadorVoiceButton', 'km_inicioVoiceButton', 'km_finVoiceButton', 'manageMaintenanceButton', 'maintenanceListTableBody', 'maintenanceListMessage', 'backToAdminMainFromMaintenance', 'maintenanceModalOverlay', 'maintenanceModalUnitInfo', 'maintenanceKmInput', 'maintenanceDateInput', 'maintenanceNotesInput', 'saveMaintenanceButton', 'cancelMaintenanceButton'];
             uiElementIds.forEach(id => uiElements[id] = document.getElementById(id));
 
             uiElements.fullscreenButton.onclick = toggleFullScreen;
@@ -2303,6 +2416,9 @@
             uiElements.cancelOperatorEditButton.onclick = () => { AppLogic.Admin.Operators.displayFormForAdd(); showScreen('operatorEditScreen'); };
             uiElements.manageUsersButton.onclick = () => showScreen('userAdminScreen');
             uiElements.addUserButton.onclick = () => AppLogic.Admin.Users.add();
+            uiElements.manageMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.show();
+            uiElements.saveMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.saveService();
+            uiElements.cancelMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.closeServiceModal();
             
             // Listeners del Flujo de Registro
             document.querySelectorAll('.company-button').forEach(btn => btn.onclick = () => AppLogic.Registration.start(btn.textContent));
@@ -2376,6 +2492,7 @@
                 backToOperatorMainSelection: 'operatorMainSelectionScreen',
                 backToOperatorMainSelectionFromEdit: 'operatorMainSelectionScreen', 
                 backToAdminMainFromUserAdmin: 'adminMainSelectionScreen',
+                backToAdminMainFromMaintenance: 'adminMainSelectionScreen',
                 backToDashboardFromCompany: 'dashboardScreen', 
                 backToCompanySelection: 'companySelectionScreen',
                 backToUnitsFromOperator: 'checkinScreen', 
@@ -2399,5 +2516,3 @@
     </script>
 </body>
 </html>
-
-

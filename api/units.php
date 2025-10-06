@@ -25,15 +25,45 @@ switch ($method) {
 }
 
 /**
- * MODIFICADO: Ahora también devuelve el operador asignado.
- * Maneja la obtención de unidades, aplicando filtros por empresa o por ID de unidad.
+ * Maneja la obtención de unidades.
+ * Si se pide una sola unidad, primero verifica y actualiza su estado de mantenimiento.
  */
 function handleGetUnits($conn, $params) {
     $companyName = $params['company'] ?? '';
     $unitId = $params['id'] ?? '';
 
-    // MODIFICADO: Se añade LEFT JOIN para obtener el nombre del operador asignado
-    $sql = "SELECT u.id, u.unit_number, c.name as company, u.assigned_operator_id, o.name as assigned_operator_name
+    // --- LÓGICA DE ACTUALIZACIÓN DE ESTADO DE MANTENIMIENTO ---
+    if (!empty($unitId)) {
+        // 1. Obtener los datos de mantenimiento de la unidad
+        $stmt = $conn->prepare("SELECT km_ultimo_mantenimiento, intervalo_mantenimiento_km FROM units WHERE id = ?");
+        $stmt->bind_param("i", $unitId);
+        $stmt->execute();
+        $unitMaint = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if ($unitMaint) {
+            // 2. Obtener el KM más alto registrado para esa unidad
+            $stmt = $conn->prepare("SELECT MAX(km_fin) as max_km FROM registros_entrada WHERE unit_id = ?");
+            $stmt->bind_param("i", $unitId);
+            $stmt->execute();
+            $lastReg = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            
+            $currentKm = $lastReg['max_km'] ?? 0;
+
+            // 3. Comparar y actualizar si es necesario
+            if ($currentKm > 0 && ($currentKm - $unitMaint['km_ultimo_mantenimiento']) > $unitMaint['intervalo_mantenimiento_km']) {
+                $stmt = $conn->prepare("UPDATE units SET estado_mantenimiento = 'BLOQUEADO' WHERE id = ?");
+                $stmt->bind_param("i", $unitId);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+    }
+    // --- FIN DE LA LÓGICA DE ACTUALIZACIÓN ---
+
+
+    $sql = "SELECT u.id, u.unit_number, c.name as company, u.assigned_operator_id, o.name as assigned_operator_name, u.estado_mantenimiento, u.intervalo_mantenimiento_km
             FROM units u 
             JOIN companies c ON u.company_id = c.id
             LEFT JOIN operators o ON u.assigned_operator_id = o.id";
@@ -63,14 +93,11 @@ function handleGetUnits($conn, $params) {
     $result = $stmt->get_result();
 
     $data = [];
-    // Si se busca por ID, devolver un solo objeto. Si no, un array.
     if (!empty($unitId)) {
         $data = $result->fetch_assoc();
     } else {
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $data[] = $row;
-            }
+        while($row = $result->fetch_assoc()) {
+            $data[] = $row;
         }
     }
     
@@ -79,7 +106,7 @@ function handleGetUnits($conn, $params) {
     $stmt->close();
 }
 
-
+// ... Las funciones handleAddUnit, handleUpdateUnit, handleDeleteUnit permanecen igual ...
 function handleAddUnit($conn, $data) {
     $unitNumber = $data['unitNumber'] ?? '';
     $companyName = $data['company'] ?? '';
@@ -90,7 +117,6 @@ function handleAddUnit($conn, $data) {
         return;
     }
 
-    // Obtener company_id
     $stmt = $conn->prepare("SELECT id FROM companies WHERE name = ?");
     $stmt->bind_param("s", $companyName);
     $stmt->execute();
@@ -104,13 +130,11 @@ function handleAddUnit($conn, $data) {
     $companyId = $result->fetch_assoc()['id'];
     $stmt->close();
 
-    // Verificar si la unidad ya existe para esa empresa
     $stmt = $conn->prepare("SELECT id FROM units WHERE unit_number = ? AND company_id = ?");
     $stmt->bind_param("si", $unitNumber, $companyId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        http_response_code(409); // Conflict
+    if ($stmt->get_result()->num_rows > 0) {
+        http_response_code(409); 
         echo json_encode(["success" => false, "message" => "La unidad " . $unitNumber . " ya existe para esta empresa."]);
         $stmt->close();
         return;
@@ -141,7 +165,6 @@ function handleUpdateUnit($conn, $data) {
         return;
     }
 
-    // Obtener company_id
     $stmt = $conn->prepare("SELECT id FROM companies WHERE name = ?");
     $stmt->bind_param("s", $companyName);
     $stmt->execute();
@@ -155,12 +178,10 @@ function handleUpdateUnit($conn, $data) {
     $companyId = $result->fetch_assoc()['id'];
     $stmt->close();
 
-    // Verificar si el nuevo número de unidad ya existe para otra unidad (excepto la que estamos editando)
     $stmt = $conn->prepare("SELECT id FROM units WHERE unit_number = ? AND company_id = ? AND id != ?");
     $stmt->bind_param("sii", $unitNumber, $companyId, $id);
     $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
+    if ($stmt->get_result()->num_rows > 0) {
         http_response_code(409);
         echo json_encode(["success" => false, "message" => "El número de unidad " . $unitNumber . " ya está en uso para esta empresa."]);
         $stmt->close();
@@ -176,8 +197,8 @@ function handleUpdateUnit($conn, $data) {
             http_response_code(200);
             echo json_encode(["success" => true, "message" => "Unidad actualizada exitosamente."]);
         } else {
-            http_response_code(404); // Not Found or No Change
-            echo json_encode(["success" => false, "message" => "Unidad no encontrada o no se realizaron cambios."]);
+            http_response_code(200);
+            echo json_encode(["success" => true, "message" => "No se realizaron cambios."]);
         }
     } else {
         http_response_code(500);
@@ -212,4 +233,5 @@ function handleDeleteUnit($conn, $data) {
     }
     $stmt->close();
 }
+
 ?>
