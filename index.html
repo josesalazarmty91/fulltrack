@@ -923,7 +923,6 @@
                 <button id="manageOperatorsButton" class="admin-selection-button">Operadores</button>
                 <button id="manageAssignmentsButton" class="admin-selection-button">Asignar Operador</button>
                 <button id="manageMaintenanceButton" class="admin-selection-button" style="background-color: #1d4ed8;">Mantenimiento</button>
-                <button id="manageAuthorizationButton" class="admin-selection-button" style="background-color: #ca8a04;">Autorizar Unidades</button>
                 <button id="manageUsersButton" class="admin-selection-button">Usuarios</button>
             </div>
             <button id="backToDashboardFromAdminMain" class="login-button go-back-button">Volver al Dashboard</button>
@@ -951,24 +950,6 @@
             </div>
             <p id="maintenanceListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando unidades...</p>
             <button id="backToAdminMainFromMaintenance" class="login-button go-back-button">Volver a Administración</button>
-        </div>
-        <!-- ==================================================================== -->
-
-        <!-- =================== NUEVA PANTALLA DE AUTORIZACIÓN =================== -->
-        <div id="supervisorAuthorizationScreen" class="app-container" style="max-width: 90vw;">
-            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Autorizar Unidades Bloqueadas</h2>
-             <p class="screen-description">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="description-icon"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"></path></svg>
-                <span>Genera un token de un solo uso para despachar una unidad bloqueada.</span>
-            </p>
-            <div class="data-table-container">
-                <table class="data-table">
-                    <thead><tr><th>Unidad Bloqueada</th><th>Acción</th></tr></thead>
-                    <tbody id="supervisorBlockedUnitsTableBody"></tbody>
-                </table>
-            </div>
-             <p id="supervisorBlockedUnitsMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando unidades bloqueadas...</p>
-            <button id="backToAdminMainFromAuthorization" class="login-button go-back-button">Volver a Administración</button>
         </div>
         <!-- ==================================================================== -->
         
@@ -2556,3 +2537,4 @@
     </script>
 </body>
 </html>
+
