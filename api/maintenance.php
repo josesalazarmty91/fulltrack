@@ -10,14 +10,14 @@ switch ($method) {
     case 'GET':
         if ($action === 'units_for_maintenance') {
             getUnitsForMaintenance($conn);
-        } elseif ($action === 'get_blocked_units') {
+        } elseif ($action === 'get_blocked_units') { // NUEVO ENDPOINT
             getBlockedUnits($conn);
         }
         break;
     case 'POST':
         if ($action === 'register_service') {
             registerService($conn, $input);
-        } elseif ($action === 'generate_token') {
+        } elseif ($action === 'generate_token') { // NUEVO ENDPOINT
             generateAuthorizationToken($conn, $input);
         } elseif ($action === 'validate_token') { // NUEVO ENDPOINT PARA VALIDAR
             validateAuthorizationToken($conn, $input);
@@ -37,6 +37,7 @@ function getUnitsForMaintenance($conn) {
     echo json_encode(["success" => true, "data" => $units]);
 }
 
+// --- NUEVA FUNCIÓN ---
 function getBlockedUnits($conn) {
     $sql = "SELECT id, unit_number FROM units WHERE estado_mantenimiento = 'BLOQUEADO' ORDER BY CAST(unit_number AS UNSIGNED) ASC";
     $result = $conn->query($sql);
@@ -82,9 +83,10 @@ function registerService($conn, $data) {
     }
 }
 
+// --- NUEVA FUNCIÓN ---
 function generateAuthorizationToken($conn, $data) {
     $unitId = $data['unitId'] ?? null;
-    $supervisorId = $data['supervisorId'] ?? 1; 
+    $supervisorId = $data['supervisorId'] ?? 1; // Usar 1 como ID de admin por defecto si no se envía
 
     if (!$unitId) {
         http_response_code(400);
@@ -92,7 +94,10 @@ function generateAuthorizationToken($conn, $data) {
         return;
     }
 
+    // Generar un token numérico de 6 dígitos
     $token = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    
+    // Calcular fecha de expiración (15 minutos desde ahora)
     $expiration = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
     $stmt = $conn->prepare("INSERT INTO autorizacion_tokens (token, unit_id, supervisor_id, fecha_expiracion) VALUES (?, ?, ?, ?)");
@@ -107,6 +112,7 @@ function generateAuthorizationToken($conn, $data) {
     }
     $stmt->close();
 }
+
 
 // --- NUEVA FUNCIÓN PARA VALIDAR EL TOKEN ---
 function validateAuthorizationToken($conn, $data) {
@@ -145,6 +151,6 @@ function validateAuthorizationToken($conn, $data) {
     }
 }
 
+
 $conn->close();
 ?>
-
