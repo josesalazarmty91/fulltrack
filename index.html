@@ -346,10 +346,17 @@
             display: flex;
             width: 100%;
             gap: 0.5rem;
+            align-items: center; /* Alinear verticalmente */
+        }
+
+        .input-with-button-group .login-input {
+            margin-bottom: 0;
+            flex-grow: 1; /* El input ocupa el espacio restante */
+        }
+        .input-with-button-group.mb-4 {
             margin-bottom: 1rem;
         }
 
-        .input-with-button-group .login-input { margin-bottom: 0; }
 
         .data-table-container {
             width: 100%;
@@ -398,7 +405,7 @@
         .data-table .delete-button { background-color: #ef4444; }
         .data-table .delete-button:hover { background-color: #dc2626; }
 
-        .data-table .qr-button, .data-table .assign-button {
+        .data-table .qr-button, .data-table .assign-button, .data-table .service-button, .data-table .token-button {
             background-color: #10b981; /* Verde */
             color: white;
             border-radius: 0.375rem;
@@ -408,7 +415,7 @@
             transition: background-color 0.2s ease;
             margin-left: 0.5rem;
         }
-        .data-table .qr-button:hover, .data-table .assign-button:hover { background-color: #059669; }
+        .data-table .qr-button:hover, .data-table .assign-button:hover, .data-table .service-button:hover, .data-table .token-button:hover { background-color: #059669; }
 
 
         .bitacora-filter-group {
@@ -466,7 +473,7 @@
             padding: 2rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             text-align: center;
-            max-width: 400px;
+            max-width: 450px;
             width: 90%;
             transform: translateY(-20px);
             transition: transform 0.3s ease;
@@ -781,6 +788,7 @@
             justify-content: center;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            flex-shrink: 0; /* Evita que el botón se encoja */
         }
         .voice-button:hover {
             background-color: #e47511;
@@ -825,6 +833,21 @@
             <div class="modal-buttons">
                 <button id="saveAssignmentButton" class="modal-button confirm">Guardar</button>
                 <button id="cancelAssignmentButton" class="modal-button cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para registrar mantenimiento -->
+    <div id="maintenanceModalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Registrar Servicio</h3>
+            <p id="maintenanceModalUnitInfo" class="text-gray-600 mb-4"></p>
+            <input type="number" id="maintenanceKmInput" placeholder="Kilometraje del servicio" class="login-input mb-4">
+            <input type="date" id="maintenanceDateInput" class="login-input mb-4">
+            <textarea id="maintenanceNotesInput" placeholder="Notas adicionales (opcional)" class="login-input mb-4" rows="3"></textarea>
+            <div class="modal-buttons">
+                <button id="saveMaintenanceButton" class="modal-button confirm">Guardar Servicio</button>
+                <button id="cancelMaintenanceButton" class="modal-button cancel">Cancelar</button>
             </div>
         </div>
     </div>
@@ -899,12 +922,37 @@
                 <button id="manageUnitsButton" class="admin-selection-button">Unidades</button>
                 <button id="manageOperatorsButton" class="admin-selection-button">Operadores</button>
                 <button id="manageAssignmentsButton" class="admin-selection-button">Asignar Operador</button>
+                <button id="manageMaintenanceButton" class="admin-selection-button" style="background-color: #1d4ed8;">Mantenimiento</button>
                 <button id="manageUsersButton" class="admin-selection-button">Usuarios</button>
             </div>
             <button id="backToDashboardFromAdminMain" class="login-button go-back-button">Volver al Dashboard</button>
         </div>
+
+        <!-- =================== NUEVA PANTALLA DE MANTENIMIENTO =================== -->
+        <div id="maintenanceAdminScreen" class="app-container" style="max-width: 90vw;">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Gestión de Mantenimiento</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="description-icon"><path d="M20.71 7.04c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34zM3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"></path></svg>
+                <span>Registra servicios y consulta el estado de las unidades.</span>
+            </p>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Unidad</th>
+                            <th>Intervalo (KM)</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenanceListTableBody"></tbody>
+                </table>
+            </div>
+            <p id="maintenanceListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando unidades...</p>
+            <button id="backToAdminMainFromMaintenance" class="login-button go-back-button">Volver a Administración</button>
+        </div>
+        <!-- ==================================================================== -->
         
-        <!-- =================== NUEVA PANTALLA DE ASIGNACIÓN =================== -->
         <div id="assignmentAdminScreen" class="app-container" style="max-width: 90vw;">
             <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Asignar Operadores a Unidades</h2>
              <p class="screen-description">
@@ -920,7 +968,6 @@
              <p id="assignmentListMessage" class="text-sm text-gray-500 mt-2 hidden">Cargando asignaciones...</p>
             <button id="backToAdminMainFromAssignment" class="login-button go-back-button">Volver a Administración</button>
         </div>
-        <!-- ==================================================================== -->
 
 
         <div id="unitAdminScreen" class="app-container">
@@ -1058,6 +1105,27 @@
             <button id="backToCompanySelection" class="login-button go-back-button">Volver a Empresas</button>
         </div>
 
+        <div id="photoUploadScreen" class="app-container">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Evidencia Fotográfica</h2>
+            <p class="screen-description">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
+                <span>Apunta la cámara y toma la foto de evidencia.</span>
+            </p>
+            
+            <div id="cameraContainer" class="w-full max-w-md mb-4">
+                <video id="cameraPreview" class="w-full rounded-lg bg-gray-200" autoplay playsinline></video>
+                <img id="photoPreview" class="hidden w-full rounded-lg">
+            </div>
+
+            <div id="photoActionButtons" class="w-full max-w-xs flex flex-col gap-4">
+                <button id="takePictureButton" class="login-button action-button">Tomar Foto</button>
+                <button id="retryPictureButton" class="login-button cancel-button hidden">Reintentar</button>
+                <button id="confirmPhotoButton" class="login-button hidden">Confirmar y Continuar</button>
+            </div>
+            
+            <button id="backToQRFromPhoto" class="login-button go-back-button">Volver a Escanear</button>
+        </div>
+
         <div id="operatorSelectionScreen" class="app-container">
             <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Selecciona el Operador</h2>
             <p class="screen-description">
@@ -1069,7 +1137,7 @@
                 <div id="operatorResultsList" class="mt-4 w-full"></div>
                 <p id="operatorSearchNotFoundMessage" class="text-gray-500 mt-4 hidden">No se encontraron operadores.</p>
             </div>
-            <button id="backToUnitsFromOperator" class="login-button go-back-button">Volver a Unidades</button>
+            <button id="backToPhotoFromOperator" class="login-button go-back-button">Volver a Foto</button>
         </div>
 
         <div id="bitacoraNumberScreen" class="app-container">
@@ -1078,13 +1146,12 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
                 <span>Introduce el número de bitácora (máximo 12 dígitos).</span>
             </p>
-            <div class="input-with-button-group">
+            <div class="input-with-button-group mb-4">
                 <input type="number" id="bitacoraNumberInput" placeholder="Ej: 123456789012" class="login-input" maxlength="12">
                  <button id="bitacoraVoiceButton" class="voice-button" title="Dictar número de bitácora">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
                 </button>
             </div>
-            <p class="text-xs text-gray-500 -mt-3 mb-4 italic">Ejemplo de voz: "bitácora uno dos tres cuatro"</p>
             <button id="confirmBitacoraButton" class="login-button">Confirmar Bitácora</button>
             <p id="bitacoraMessage" class="text-sm text-red-600 mt-2"></p>
             <button id="backToOperatorSelectionFromBitacora" class="login-button go-back-button">Volver a Operadores</button>
@@ -1097,22 +1164,20 @@
                 <span>Introduce el kilometraje de inicio y fin.</span>
             </p>
             <div class="w-full">
-                <div class="input-with-button-group">
+                <div class="input-with-button-group mb-4">
                     <input type="number" step="0.01" id="kmInicioInput" placeholder="KM Inicio" class="login-input">
                     <button id="km_inicioVoiceButton" class="voice-button" title="Dictar KM de inicio">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
                     </button>
                 </div>
-                <p class="text-xs text-gray-500 -mt-3 mb-4 italic text-left">Ejemplo de voz: "inicio siete cinco dos"</p>
             </div>
              <div class="w-full">
-                <div class="input-with-button-group">
+                <div class="input-with-button-group mb-4">
                     <input type="number" step="0.01" id="kmFinInput" placeholder="KM Fin" class="login-input">
                     <button id="km_finVoiceButton" class="voice-button" title="Dictar KM de fin">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
                     </button>
                 </div>
-                 <p class="text-xs text-gray-500 -mt-3 mb-4 italic text-left">Ejemplo de voz: "fin ocho cero cero"</p>
             </div>
             <div class="flex flex-col items-start w-full mb-4">
                 <label for="kmRecorridosDisplay" class="text-gray-700 text-sm font-bold mb-1">Kilómetros Recorridos:</label>
@@ -1129,13 +1194,12 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
                 <span>Introduce los litros cargados en la base</span>
             </p>
-            <div class="input-with-button-group">
+            <div class="input-with-button-group mb-4">
                 <input type="number" step="0.01" id="litrosTotalesInput" placeholder="Litros totales" class="login-input">
                 <button id="litros_dieselVoiceButton" class="voice-button" title="Dictar litros de diésel">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
                 </button>
             </div>
-            <p class="text-xs text-gray-500 -mt-3 mb-4 italic">Ejemplo de voz: "cargar cincuenta punto cinco litros"</p>
             <button id="confirmLitrosDieselButton" class="login-button">Confirmar Carga</button>
             <p id="litrosDieselMessage" class="text-sm text-red-600 mt-2"></p>
             <button id="backToKmRegistro" class="login-button go-back-button">Volver a KM de Registro</button>
@@ -1159,13 +1223,12 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
                 <span>Introduce los litros de urea cargados.</span>
             </p>
-            <div class="input-with-button-group">
+            <div class="input-with-button-group mb-4">
                 <input type="number" step="0.01" id="litrosUreaInput" placeholder="Litros de urea" class="login-input">
                 <button id="litros_ureaVoiceButton" class="voice-button" title="Dictar litros de urea">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
                 </button>
             </div>
-            <p class="text-xs text-gray-500 -mt-3 mb-4 italic">Ejemplo de voz: "urea veinte litros"</p>
             <button id="confirmLitrosUreaButton" class="login-button">Confirmar Carga de Urea</button>
             <p id="litrosUreaMessage" class="text-sm text-red-600 mt-2"></p>
             <button id="backToLitrosAuto" class="login-button go-back-button">Volver a Litros Auto</button>
@@ -1210,34 +1273,13 @@
             <button id="backToSellos" class="login-button go-back-button">Volver a Sellos</button>
         </div>
 
-        <div id="photoUploadScreen" class="app-container">
-            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Evidencia Fotográfica</h2>
-            <p class="screen-description">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
-                <span>Apunta la cámara y toma la foto de evidencia.</span>
-            </p>
-            
-            <div id="cameraContainer" class="w-full max-w-md mb-4">
-                <video id="cameraPreview" class="w-full rounded-lg bg-gray-200" autoplay playsinline></video>
-                <img id="photoPreview" class="hidden w-full rounded-lg">
-            </div>
-
-            <div id="photoActionButtons" class="w-full max-w-xs flex flex-col gap-4">
-                <button id="takePictureButton" class="login-button action-button">Tomar Foto</button>
-                <button id="retryPictureButton" class="login-button cancel-button hidden">Reintentar</button>
-                <button id="confirmPhotoButton" class="login-button hidden">Confirmar y Continuar</button>
-            </div>
-            
-            <button id="backToTotalizador" class="login-button go-back-button">Volver a Totalizador</button>
-        </div>
-
         <div id="finalizarRegistroScreen" class="app-container">
-            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Registro Completado</h2>
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Finalizar Registro</h2>
             <p id="finalGraciasMessage" class="screen-description">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="description-icon"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1z"></path><path d="M12 2C7.59 2 4 5.59 4 10c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-1.26c1.81-1.27 3-3.36 3-5.74 0-4.41-3.59-8-8z"></path></svg>
-                <span>Presiona finalizar para confirmar y guardar.</span>
+                <span>Presiona finalizar para confirmar y guardar todos los datos.</span>
             </p>
-            <button id="finalizarRegistroButton" class="login-button">Finalizar Registro</button>
+            <button id="finalizarRegistroButton" class="login-button action-button">Finalizar y Guardar</button>
             <p id="finalMessageDisplay" class="text-lg text-green-600 font-bold mt-4 hidden">¡Gracias por tu registro!</p>
             <button id="regresarAlInicioButton" class="login-button go-back-button mt-8 hidden"></button>
         </div>
@@ -1331,6 +1373,8 @@
         let isScanning = false;
         let currentAssignmentUnit = null;
         let speechRecognition = null;
+        let currentMaintenanceUnit = null;
+        let unitDataCache = null; // Cache para los datos de la unidad seleccionada
 
         // Referencias a elementos del DOM
         let allScreens = {}, uiElements = {};
@@ -1354,15 +1398,13 @@
                 }
             }
             
-            // Lógica para mostrar u ocultar el panel de resumen
-            const registrationScreens = ['checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen'];
+            const registrationScreens = ['photoUploadScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen'];
             if(registrationScreens.includes(screenId)) {
                 uiElements.registrationSummaryContainer.classList.add('visible');
             } else {
                 uiElements.registrationSummaryContainer.classList.remove('visible');
             }
 
-            // Habilitar o deshabilitar botón de voz de KM Inicio
             if (screenId === 'kmRegistroScreen') {
                 uiElements.km_inicioVoiceButton.disabled = uiElements.kmInicioInput.readOnly;
             }
@@ -1410,16 +1452,18 @@
             }, duration);
         }
         
-        function hideModal() {
-            uiElements.customModalOverlay.classList.remove('visible');
-            uiElements.customModalImageContainer.innerHTML = ''; 
-            if(uiElements.customModalConfirmButton) uiElements.customModalConfirmButton.style.display = 'inline-block';
-            if(uiElements.customModalCancelButton) uiElements.customModalCancelButton.style.display = 'inline-block';
-            
-            const downloadBtn = document.getElementById('downloadQRButton');
-            if(downloadBtn) downloadBtn.remove();
-            const closeBtn = document.getElementById('closeQRModalButton');
-            if(closeBtn) closeBtn.remove();
+        function hideModal(modalId = 'customModalOverlay') {
+            document.getElementById(modalId).classList.remove('visible');
+            if (modalId === 'customModalOverlay') {
+                uiElements.customModalImageContainer.innerHTML = ''; 
+                if(uiElements.customModalConfirmButton) uiElements.customModalConfirmButton.style.display = 'inline-block';
+                if(uiElements.customModalCancelButton) uiElements.customModalCancelButton.style.display = 'inline-block';
+                
+                const downloadBtn = document.getElementById('downloadQRButton');
+                if(downloadBtn) downloadBtn.remove();
+                const closeBtn = document.getElementById('closeQRModalButton');
+                if(closeBtn) closeBtn.remove();
+            }
         }
         
         function showCustomConfirm({ message, iconHtml = '', confirmText = 'Sí', cancelText = 'No', onConfirm, onCancel }) {
@@ -1427,6 +1471,9 @@
             uiElements.customModalImageContainer.innerHTML = iconHtml;
             uiElements.customModalConfirmButton.textContent = confirmText;
             uiElements.customModalCancelButton.textContent = cancelText;
+            
+            uiElements.customModalConfirmButton.style.display = 'inline-block';
+            uiElements.customModalCancelButton.style.display = 'inline-block';
 
             uiElements.customModalConfirmButton.onclick = () => {
                 hideModal();
@@ -1442,7 +1489,7 @@
         }
         
         function isRegistrationInProgress() {
-            return selectedCompany !== '';
+            return selectedCompany !== '' || selectedUnit !== '';
         }
 
         function handleBackNavigation(targetScreenId) {
@@ -1508,7 +1555,7 @@
                     loginMessage.textContent = 'Verificando...';
                     const result = await callApi('users.php', 'POST', { action: 'login', username: usernameInput.value, password: passwordInput.value });
                     if (result.success) {
-                        currentLoggedInUser = { username: usernameInput.value, userType: result.userType };
+                        currentLoggedInUser = { username: usernameInput.value, userType: result.userType, id: result.userId };
                         uiElements.welcomeGreeting.textContent = `¡Hola, ${currentLoggedInUser.username}!`;
                         this.applyPermissions();
                         showScreen('dashboardScreen');
@@ -1517,7 +1564,7 @@
                     }
                 },
                 logout() {
-                    currentLoggedInUser = { username: '', userType: '' };
+                    currentLoggedInUser = { username: '', userType: '', id: null };
                     AppLogic.Registration.resetData();
                     uiElements.usernameInput.value = '';
                     uiElements.passwordInput.value = '';
@@ -1527,6 +1574,7 @@
                 applyPermissions() {
                     const isAdmin = currentLoggedInUser.userType === 'Administrador';
                     uiElements.adminButton.classList.toggle('hidden', !isAdmin);
+                    uiElements.manageMaintenanceButton.classList.toggle('hidden', !isAdmin);
                 }
             },
             Bitacora: {
@@ -1594,7 +1642,7 @@
                 }
             },
             Voice: {
-                // --- MÓDULO PARA COMANDOS DE VOZ ---
+                // ... (Voice logic remains the same)
                 startRecognition(context) {
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     if (!SpeechRecognition) {
@@ -1728,23 +1776,22 @@
                 }
             },
             Registration: {
-                // ... (Existing Registration logic)
                 resetData() {
                     selectedCompany = ''; selectedUnit = ''; selectedOperator = ''; bitacoraNumber = null;
                     kmHubodometro = null; kmInicio = null; kmFin = null; litrosTotales = null;
                     litrosAuto = null; litrosUrea = null; collectedSeals = []; litrosTotalizador = null;
                     capturedPhotoBlob = null;
                     allOperatorsCache = [];
+                    unitDataCache = null;
                     const inputsToClear = ['bitacoraNumberInput', 'kmInicioInput', 'kmFinInput', 'litrosTotalesInput', 'litrosAutoInput', 'litrosUreaInput', 'sealInput', 'totalizadorLitrosInput', 'operatorSearchInput', 'unitSearchInput'];
                     inputsToClear.forEach(id => { if(uiElements[id]) uiElements[id].value = ''; });
                     if(uiElements.operatorResultsList) uiElements.operatorResultsList.innerHTML = '';
                     if(uiElements.kmRecorridosDisplay) uiElements.kmRecorridosDisplay.textContent = '0.00';
                     if(uiElements.sealListDisplay) uiElements.sealListDisplay.innerHTML = '';
                     
-                    // Asegurarse de que el campo KM Inicio sea editable para el próximo registro
                     if(uiElements.kmInicioInput) uiElements.kmInicioInput.readOnly = false;
 
-                    updateRegistrationSummary(); // Limpia el panel
+                    updateRegistrationSummary(); 
                 },
                 async startQRScan() {
                     showScreen('qrScannerScreen');
@@ -1783,30 +1830,39 @@
                         requestAnimationFrame(tick);
                     }
                 },
+                async processUnitSelection(unitId) {
+                    const result = await callApi(`units.php?id=${unitId}`);
+                    if (!result.success || !result.data) {
+                        throw new Error("Unidad no encontrada en la base de datos.");
+                    }
+                    
+                    unitDataCache = result.data;
+                    
+                    if (unitDataCache.estado_mantenimiento === 'BLOQUEADO') {
+                        showCustomConfirm({
+                            message: `<b>¡MANTENIMIENTO REQUERIDO!</b><br>La unidad <strong>${unitDataCache.unit_number}</strong> ha superado el intervalo de servicio de ${unitDataCache.intervalo_mantenimiento_km} km y no puede ser despachada.`,
+                            confirmText: 'Entendido',
+                            cancelText: 'Volver',
+                            onConfirm: () => { AppLogic.Registration.startQRScan(); },
+                            onCancel: () => { AppLogic.Registration.startQRScan(); }
+                        });
+                        return false; // Indica que el flujo no debe continuar
+                    }
+
+                    selectedCompany = unitDataCache.company;
+                    selectedUnit = unitDataCache.unit_number;
+                    updateRegistrationSummary();
+                    this.showPhotoScreen();
+                    return true; // Indica que el flujo puede continuar
+                },
                 async processScannedQR(data) {
                     try {
                         const qrData = JSON.parse(data);
                         if (!qrData.id) throw new Error("QR sin ID de unidad.");
-                        
-                        const result = await callApi(`units.php?id=${qrData.id}`);
-                        if(result.success && result.data){
-                            const unitData = result.data;
-                            selectedCompany = unitData.company;
-                            this.selectUnit(unitData.unit_number); 
-
-                            if(unitData.assigned_operator_id && unitData.assigned_operator_name){
-                                showToast(`Unidad ${unitData.unit_number} cargada. Operador asignado: ${unitData.assigned_operator_name}.`, 'success');
-                                this.confirmOperator(unitData.assigned_operator_name);
-                                showScreen('bitacoraNumberScreen'); 
-                            } else {
-                                showToast(`Unidad ${unitData.unit_number} cargada. Selecciona un operador.`, 'info');
-                            }
-                        } else {
-                             throw new Error("Unidad no encontrada en la base de datos.");
-                        }
+                        await this.processUnitSelection(qrData.id);
                     } catch (e) {
                         console.error("Error al procesar QR:", e);
-                        showToast('QR no válido. Intenta de nuevo.', 'error');
+                        showToast('QR no válido o unidad no encontrada. Intenta de nuevo.', 'error');
                         setTimeout(() => {
                             if(document.getElementById('qrScannerScreen').classList.contains('active')) {
                                 AppLogic.Registration.startQRScan();
@@ -1817,7 +1873,6 @@
                 async start(companyName) {
                     selectedCompany = companyName;
                     showScreen('checkinScreen');
-                    updateRegistrationSummary();
                     const { unitButtonGrid, unitLoadMessage } = uiElements;
                     unitButtonGrid.innerHTML = '';
                     unitLoadMessage.classList.remove('hidden');
@@ -1828,32 +1883,20 @@
                             const button = document.createElement('button');
                             button.className = 'unit-button';
                             button.textContent = unit.unit_number;
-                            button.onclick = () => this.selectUnit(unit.unit_number);
+                            button.onclick = () => this.selectUnit(unit.id);
                             unitButtonGrid.appendChild(button);
                         });
                     }
                 },
-                async selectUnit(unitNumber) {
-                    selectedUnit = unitNumber;
-                    showScreen('operatorSelectionScreen');
-                    updateRegistrationSummary();
-                    uiElements.operatorSearchInput.value = '';
-                    uiElements.operatorResultsList.innerHTML = '';
-                    uiElements.operatorSearchNotFoundMessage.classList.add('hidden');
-                    const result = await callApi(`operators.php?company=${selectedCompany}`);
-                    if(result.success && result.data) {
-                        allOperatorsCache = result.data.sort((a,b) => a.name.localeCompare(b.name));
-                        this.renderOperatorResults('');
-                    } else {
-                        allOperatorsCache = [];
-                    }
+                async selectUnit(unitId) {
+                    await this.processUnitSelection(unitId);
                 },
                 renderOperatorResults(searchTerm) {
                     const { operatorResultsList, operatorSearchNotFoundMessage } = uiElements;
                     operatorResultsList.innerHTML = '';
                     searchTerm = searchTerm.toLowerCase();
                     const filteredOperators = allOperatorsCache.filter(op => op.name.toLowerCase().includes(searchTerm));
-                    operatorSearchNotFoundMessage.classList.toggle('hidden', filteredOperators.length === 0);
+                    operatorSearchNotFoundMessage.classList.toggle('hidden', filteredOperators.length > 0);
                     filteredOperators.forEach(op => {
                         const item = document.createElement('div');
                         item.className = 'operator-result-item';
@@ -1920,7 +1963,7 @@
                     } catch (err) {
                         console.error("Error al acceder a la cámara:", err);
                         showToast('Error de cámara. Revisa los permisos.', 'error');
-                        showScreen('totalizadorLitrosScreen');
+                        showScreen('qrScannerScreen');
                     }
                 },
                 takePicture() {
@@ -1941,15 +1984,47 @@
                     }, 'image/jpeg', 0.9);
                 },
                 retryPicture() { this.showPhotoScreen(); },
-                async uploadPhotoAndFinalize() {
-                    if (!capturedPhotoBlob) { showToast('No se ha tomado foto.', 'error'); return; }
-                    showToast('Subiendo foto y guardando registro...', 'info', 5000);
+                async confirmPhotoAndContinue() {
+                    if (!capturedPhotoBlob) {
+                        showToast('Debes tomar una foto para continuar.', 'error');
+                        return;
+                    }
+
+                    showScreen('operatorSelectionScreen');
+                    uiElements.operatorSearchInput.value = '';
+                    uiElements.operatorResultsList.innerHTML = '';
+                    uiElements.operatorSearchNotFoundMessage.classList.add('hidden');
+
+                    if (unitDataCache.assigned_operator_id && unitDataCache.assigned_operator_name) {
+                        showToast(`Operador asignado: ${unitDataCache.assigned_operator_name}.`, 'info');
+                        this.confirmOperator(unitDataCache.assigned_operator_name);
+                    } else {
+                        const result = await callApi(`operators.php?company=${selectedCompany}`);
+                        if (result.success && result.data) {
+                            allOperatorsCache = result.data.sort((a, b) => a.name.localeCompare(b.name));
+                            this.renderOperatorResults('');
+                        } else {
+                            allOperatorsCache = [];
+                        }
+                    }
+                },
+                async finalizeRegistration() {
+                    if (!capturedPhotoBlob) { showToast('Falta la evidencia fotográfica.', 'error'); return; }
+                    
+                    uiElements.finalizarRegistroButton.disabled = true;
+                    uiElements.finalizarRegistroButton.textContent = 'Guardando...';
+
                     const formData = new FormData();
                     formData.append('photo', capturedPhotoBlob, 'evidence.jpg');
                     const uploadResult = await callApi('upload.php', 'POST', formData, true);
+
                     if (!uploadResult || !uploadResult.success) {
-                        showToast(uploadResult.message || 'Error al subir la foto.', 'error'); return;
+                        showToast(uploadResult.message || 'Error al subir la foto.', 'error');
+                        uiElements.finalizarRegistroButton.disabled = false;
+                        uiElements.finalizarRegistroButton.textContent = 'Finalizar y Guardar';
+                        return;
                     }
+
                     const photoPath = uploadResult.filePath;
                     const registroData = {
                         company: selectedCompany, unitNumber: selectedUnit, operatorName: selectedOperator,
@@ -1964,6 +2039,7 @@
                         litrosTotalizador: parseFloat(uiElements.totalizadorLitrosInput.value),
                         photoPath
                     };
+
                     const finalResult = await callApi('registrations.php', 'POST', registroData);
                     if (finalResult.success) {
                         showToast(finalResult.message, 'success');
@@ -1972,6 +2048,8 @@
                     } else {
                         showToast(finalResult.message || 'Error al guardar el registro.', 'error');
                     }
+                    uiElements.finalizarRegistroButton.disabled = false;
+                    uiElements.finalizarRegistroButton.textContent = 'Finalizar y Guardar';
                 }
             },
             Admin: {
@@ -2243,39 +2321,96 @@
                         }
                     },
                     closeAssignmentModal() {
-                        uiElements.assignmentModalOverlay.classList.remove('visible');
+                        hideModal('assignmentModalOverlay');
                         currentAssignmentUnit = null;
+                    }
+                },
+                Maintenance: {
+                    show() {
+                        showScreen('maintenanceAdminScreen');
+                        this.populateList();
+                    },
+                    async populateList() {
+                        const { maintenanceListTableBody, maintenanceListMessage } = uiElements;
+                        maintenanceListTableBody.innerHTML = '';
+                        maintenanceListMessage.classList.remove('hidden');
+                        const result = await callApi('maintenance.php?action=units_for_maintenance');
+                        maintenanceListMessage.classList.add('hidden');
+
+                        if (result.success && result.data) {
+                            result.data.forEach(unit => {
+                                const row = maintenanceListTableBody.insertRow();
+                                const estadoClass = unit.estado_mantenimiento === 'OK' ? 'text-green-600' : 'text-red-600';
+                                row.innerHTML = `
+                                    <td>${unit.unit_number}</td>
+                                    <td>${unit.intervalo_mantenimiento_km}</td>
+                                    <td class="font-bold ${estadoClass}">${unit.estado_mantenimiento}</td>
+                                `;
+                                const actionCell = row.insertCell();
+                                const serviceBtn = document.createElement('button');
+                                serviceBtn.textContent = 'Registrar Servicio';
+                                serviceBtn.className = 'service-button';
+                                serviceBtn.onclick = () => this.openServiceModal(unit);
+                                actionCell.appendChild(serviceBtn);
+                            });
+                        }
+                    },
+                    openServiceModal(unit) {
+                        currentMaintenanceUnit = unit;
+                        uiElements.maintenanceModalUnitInfo.innerHTML = `Registrando servicio para la unidad: <strong>${unit.unit_number}</strong>`;
+                        uiElements.maintenanceKmInput.value = '';
+                        uiElements.maintenanceDateInput.value = new Date().toISOString().split('T')[0];
+                        uiElements.maintenanceNotesInput.value = '';
+                        document.getElementById('maintenanceModalOverlay').classList.add('visible');
+                    },
+                    async saveService() {
+                        const data = {
+                            unitId: currentMaintenanceUnit.id,
+                            kilometraje: uiElements.maintenanceKmInput.value,
+                            fecha: uiElements.maintenanceDateInput.value,
+                            notas: uiElements.maintenanceNotesInput.value,
+                        };
+                        
+                        if (!data.kilometraje || !data.fecha) {
+                            showToast('Kilometraje y fecha son requeridos.', 'error');
+                            return;
+                        }
+
+                        const result = await callApi('maintenance.php?action=register_service', 'POST', data);
+                        showToast(result.message, result.success ? 'success' : 'error');
+                        if (result.success) {
+                            hideModal('maintenanceModalOverlay');
+                            this.populateList();
+                        }
+                    },
+                    closeServiceModal() {
+                        hideModal('maintenanceModalOverlay');
+                        currentMaintenanceUnit = null;
                     }
                 }
             }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen'];
+            const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen', 'maintenanceAdminScreen'];
             screenIds.forEach(id => allScreens[id] = document.getElementById(id));
             
-            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToUnitsFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToTotalizador','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals', 'sellosVoiceButton', 'bitacoraVoiceButton', 'litros_dieselVoiceButton', 'litros_ureaVoiceButton', 'totalizadorVoiceButton', 'km_inicioVoiceButton', 'km_finVoiceButton'];
+            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToPhotoFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToQRFromPhoto','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals', 'sellosVoiceButton', 'bitacoraVoiceButton', 'litros_dieselVoiceButton', 'litros_ureaVoiceButton', 'totalizadorVoiceButton', 'km_inicioVoiceButton', 'km_finVoiceButton', 'manageMaintenanceButton', 'maintenanceListTableBody', 'maintenanceListMessage', 'backToAdminMainFromMaintenance', 'maintenanceModalOverlay', 'maintenanceModalUnitInfo', 'maintenanceKmInput', 'maintenanceDateInput', 'maintenanceNotesInput', 'saveMaintenanceButton', 'cancelMaintenanceButton'];
             uiElementIds.forEach(id => uiElements[id] = document.getElementById(id));
 
             uiElements.fullscreenButton.onclick = toggleFullScreen;
             document.addEventListener('fullscreenchange', updateFullscreenButton);
             updateFullscreenButton();
 
-            // ===== Lógica del Panel de Resumen =====
-            uiElements.summaryToggleButton.onclick = () => {
-                uiElements.registrationSummaryContainer.classList.toggle('expanded');
-            };
-            uiElements.registrationSummaryContainer.classList.remove('expanded');
+            // Lógica del Panel de Resumen
+            uiElements.summaryToggleButton.onclick = () => uiElements.registrationSummaryContainer.classList.toggle('expanded');
             
-            // ===== Lógica de los Botones de Voz =====
-            uiElements.sellosVoiceButton.onclick = () => AppLogic.Voice.startRecognition('sellos');
-            uiElements.bitacoraVoiceButton.onclick = () => AppLogic.Voice.startRecognition('bitacora');
-            uiElements.litros_dieselVoiceButton.onclick = () => AppLogic.Voice.startRecognition('litros_diesel');
-            uiElements.litros_ureaVoiceButton.onclick = () => AppLogic.Voice.startRecognition('litros_urea');
-            uiElements.totalizadorVoiceButton.onclick = () => AppLogic.Voice.startRecognition('totalizador');
-            uiElements.km_inicioVoiceButton.onclick = () => AppLogic.Voice.startRecognition('km_inicio');
-            uiElements.km_finVoiceButton.onclick = () => AppLogic.Voice.startRecognition('km_fin');
-
+            // Lógica de los Botones de Voz
+            ['sellos', 'bitacora', 'litros_diesel', 'litros_urea', 'totalizador', 'km_inicio', 'km_fin'].forEach(context => {
+                if (uiElements[`${context}VoiceButton`]) {
+                    uiElements[`${context}VoiceButton`].onclick = () => AppLogic.Voice.startRecognition(context);
+                }
+            });
 
             // Event Listeners Principales
             uiElements.loginButton.onclick = () => AppLogic.Auth.login();
@@ -2303,9 +2438,15 @@
             uiElements.cancelOperatorEditButton.onclick = () => { AppLogic.Admin.Operators.displayFormForAdd(); showScreen('operatorEditScreen'); };
             uiElements.manageUsersButton.onclick = () => showScreen('userAdminScreen');
             uiElements.addUserButton.onclick = () => AppLogic.Admin.Users.add();
+            uiElements.manageMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.show();
+            uiElements.saveMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.saveService();
+            uiElements.cancelMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.closeServiceModal();
             
-            // Listeners del Flujo de Registro
+            // Listeners del Flujo de Registro (NUEVO ORDEN)
             document.querySelectorAll('.company-button').forEach(btn => btn.onclick = () => AppLogic.Registration.start(btn.textContent));
+            uiElements.takePictureButton.onclick = () => AppLogic.Registration.takePicture();
+            uiElements.retryPictureButton.onclick = () => AppLogic.Registration.retryPicture();
+            uiElements.confirmPhotoButton.onclick = () => AppLogic.Registration.confirmPhotoAndContinue();
             
             uiElements.confirmBitacoraButton.onclick = async () => {
                 showToast('Buscando último KM registrado...', 'info');
@@ -2335,17 +2476,13 @@
             uiElements.confirmLitrosAutoButton.onclick = () => { showScreen('litrosUreaScreen'); updateRegistrationSummary(); };
             uiElements.confirmLitrosUreaButton.onclick = () => { showScreen('sellosScreen'); updateRegistrationSummary(); };
             uiElements.confirmSellosButton.onclick = () => { showScreen('totalizadorLitrosScreen'); updateRegistrationSummary(); };
-            uiElements.confirmTotalizadorLitrosButton.onclick = () => { AppLogic.Registration.showPhotoScreen(); updateRegistrationSummary(); };
-            
-            // Listeners de actualización de resumen en tiempo real
-            uiElements.bitacoraNumberInput.oninput = updateRegistrationSummary;
-            uiElements.litrosTotalesInput.oninput = updateRegistrationSummary;
-            uiElements.litrosAutoInput.oninput = updateRegistrationSummary;
-            uiElements.litrosUreaInput.oninput = updateRegistrationSummary;
+            uiElements.confirmTotalizadorLitrosButton.onclick = () => { showScreen('finalizarRegistroScreen'); updateRegistrationSummary(); };
+            uiElements.finalizarRegistroButton.onclick = () => AppLogic.Registration.finalizeRegistration();
 
-            uiElements.takePictureButton.onclick = () => AppLogic.Registration.takePicture();
-            uiElements.retryPictureButton.onclick = () => AppLogic.Registration.retryPicture();
-            uiElements.confirmPhotoButton.onclick = () => AppLogic.Registration.uploadPhotoAndFinalize();
+            // Listeners de actualización de resumen en tiempo real y otros
+            ['bitacoraNumberInput', 'litrosTotalesInput', 'litrosAutoInput', 'litrosUreaInput'].forEach(id => {
+                if(uiElements[id]) uiElements[id].oninput = updateRegistrationSummary;
+            });
             uiElements.kmInicioInput.oninput = () => AppLogic.Registration.updateKmRecorridos();
             uiElements.kmFinInput.oninput = () => AppLogic.Registration.updateKmRecorridos();
             uiElements.addSealButton.onclick = () => AppLogic.Registration.addSeal();
@@ -2362,23 +2499,18 @@
                     button.style.display = isVisible ? 'flex' : 'none';
                     if(isVisible) found = true;
                 });
-                uiElements.unitSearchNotFoundMessage.classList.toggle('hidden', found);
+                uiElements.unitSearchNotFoundMessage.classList.toggle('hidden', !found && searchTerm);
             });
 
             uiElements.operatorSearchInput.addEventListener('input', () => AppLogic.Registration.renderOperatorResults(uiElements.operatorSearchInput.value));
 
-            // Botones "Volver"
+            // Botones "Volver" (NUEVO ORDEN)
             const backButtons = {
-                backToDashboardFromAdminMain: 'dashboardScreen', 
-                backToAdminMainFromUnitAdmin: 'adminMainSelectionScreen',
-                backToAdminMainFromAssignment: 'adminMainSelectionScreen',
-                backToAdminMainFromOperatorMain: 'adminMainSelectionScreen', 
-                backToOperatorMainSelection: 'operatorMainSelectionScreen',
-                backToOperatorMainSelectionFromEdit: 'operatorMainSelectionScreen', 
-                backToAdminMainFromUserAdmin: 'adminMainSelectionScreen',
+                backToDashboardFromQR: 'dashboardScreen',
                 backToDashboardFromCompany: 'dashboardScreen', 
                 backToCompanySelection: 'companySelectionScreen',
-                backToUnitsFromOperator: 'checkinScreen', 
+                backToQRFromPhoto: 'qrScannerScreen',
+                backToPhotoFromOperator: 'photoUploadScreen',
                 backToOperatorSelectionFromBitacora: 'operatorSelectionScreen',
                 backToBitacoraNumber: 'bitacoraNumberScreen', 
                 backToKmRegistro: 'kmRegistroScreen', 
@@ -2386,9 +2518,16 @@
                 backToLitrosAuto: 'litrosAutoScreen', 
                 backToLitrosUrea: 'sellosScreen',
                 backToSellos: 'totalizadorLitrosScreen', 
-                backToTotalizador: 'totalizadorLitrosScreen',
                 backToDashboardFromBitacora: 'dashboardScreen',
-                backToDashboardFromQR: 'dashboardScreen'
+                // Admin back buttons
+                backToDashboardFromAdminMain: 'dashboardScreen', 
+                backToAdminMainFromUnitAdmin: 'adminMainSelectionScreen',
+                backToAdminMainFromAssignment: 'adminMainSelectionScreen',
+                backToAdminMainFromOperatorMain: 'adminMainSelectionScreen', 
+                backToOperatorMainSelection: 'operatorMainSelectionScreen',
+                backToOperatorMainSelectionFromEdit: 'operatorMainSelectionScreen', 
+                backToAdminMainFromUserAdmin: 'adminMainSelectionScreen',
+                backToAdminMainFromMaintenance: 'adminMainSelectionScreen'
             };
             for (const [btnId, screenId] of Object.entries(backButtons)) {
                 if(uiElements[btnId]) uiElements[btnId].onclick = () => handleBackNavigation(screenId);
@@ -2399,5 +2538,3 @@
     </script>
 </body>
 </html>
-
-
