@@ -2467,7 +2467,28 @@
                 showScreen('kmRegistroScreen');
             };
 
-            uiElements.confirmKmRegistroButton.onclick = () => { showScreen('litrosDieselScreen'); updateRegistrationSummary(); };
+            uiElements.confirmKmRegistroButton.onclick = () => { 
+                const inicio = parseFloat(uiElements.kmInicioInput.value);
+                const fin = parseFloat(uiElements.kmFinInput.value);
+
+                if (isNaN(inicio) || isNaN(fin)) {
+                    showToast('Por favor, ingresa valores para KM Inicio y Fin.', 'error');
+                    return;
+                }
+
+                if (fin < inicio) {
+                    showToast('El KM de fin no puede ser menor al KM de inicio.', 'error');
+                    return;
+                }
+                
+                if (fin === inicio) {
+                    showToast('Los kilómetros recorridos no pueden ser cero.', 'error');
+                    return;
+                }
+
+                showScreen('litrosDieselScreen'); 
+                updateRegistrationSummary(); 
+            };
             uiElements.confirmLitrosDieselButton.onclick = () => {
                 updateRegistrationSummary();
                 showCustomConfirm({
@@ -2542,5 +2563,6 @@
     </script>
 </body>
 </html>
+
 
 
