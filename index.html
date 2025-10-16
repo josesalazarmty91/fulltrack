@@ -1349,6 +1349,7 @@
                             <th>KM Fin</th>
                             <th>KM Recorrido</th>
                             <th>Litros Totales</th>
+                            <th>Rendimiento</th>
                             <th>Litros Urea</th>
                         </tr>
                     </thead>
@@ -1702,13 +1703,15 @@
 
                     const kmInicio = data.km_inicio ? parseFloat(data.km_inicio) : 0;
                     const kmFin = data.km_fin ? parseFloat(data.km_fin) : 0;
-                    const kmRecorrido = kmFin > 0 ? (kmFin - kmInicio).toFixed(2) : '0.00';
+                    const kmRecorrido = kmFin > 0 ? (kmFin - kmInicio) : 0;
 
                     const litrosDiesel = data.litros_diesel ? parseFloat(data.litros_diesel) : 0;
                     const litrosAuto = data.litros_auto ? parseFloat(data.litros_auto) : 0;
-                    const litrosTotales = (litrosDiesel + litrosAuto).toFixed(2);
+                    const litrosTotales = litrosDiesel + litrosAuto;
 
-                    const litrosUrea = data.litros_urea ? parseFloat(data.litros_urea).toFixed(2) : 0;
+                    const rendimiento = (litrosTotales > 0 && kmRecorrido > 0) ? (kmRecorrido / litrosTotales).toFixed(2) : 'N/A';
+
+                    const litrosUrea = data.litros_urea ? parseFloat(data.litros_urea).toFixed(2) : '0.00';
 
                     row.innerHTML = `
                         <td>${data.unit_number || ''}</td>
@@ -1716,8 +1719,9 @@
                         <td>${data.operator_name || ''}</td>
                         <td>${kmInicio.toFixed(2)}</td>
                         <td>${kmFin.toFixed(2)}</td>
-                        <td>${kmRecorrido}</td>
-                        <td>${litrosTotales}</td>
+                        <td>${kmRecorrido.toFixed(2)}</td>
+                        <td>${litrosTotales.toFixed(2)}</td>
+                        <td class="font-bold">${rendimiento}</td>
                         <td>${litrosUrea}</td>
                     `;
                 },
