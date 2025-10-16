@@ -957,8 +957,15 @@
             <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Asignar Operadores a Unidades</h2>
              <p class="screen-description">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="description-icon"><path d="M16 8c0-2.21-1.79-4-4-4S8 5.79 8 8s1.79 4 4 4 4-1.79 4-4zm-4 5c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4z"></path></svg>
-                <span>Presiona "Asignar" para vincular un operador a una unidad.</span>
+                <span>Utiliza los filtros para encontrar rápidamente la unidad que buscas.</span>
             </p>
+            <!-- NUEVOS FILTROS -->
+            <div class="bitacora-filter-group">
+                <input type="search" id="assignmentUnitSearch" placeholder="Buscar por unidad..." class="login-input w-full sm:w-1/3">
+                <select id="assignmentCompanyFilter" class="operator-select w-full sm:w-1/3"><option value="">Todas las Empresas</option></select>
+                <input type="search" id="assignmentOperatorSearch" placeholder="Buscar por operador..." class="login-input w-full sm:w-1/3">
+            </div>
+            <!-- FIN DE FILTROS -->
             <div class="data-table-container">
                 <table class="data-table">
                     <thead><tr><th>Unidad</th><th>Empresa</th><th>Operador Asignado</th><th>Acción</th></tr></thead>
@@ -1379,6 +1386,7 @@
         let speechRecognition = null;
         let currentMaintenanceUnit = null;
         let unitDataCache = null; // Cache para los datos de la unidad seleccionada
+        let assignmentCache = []; // Cache para la lista de asignaciones
 
         // Referencias a elementos del DOM
         let allScreens = {}, uiElements = {};
@@ -2274,39 +2282,105 @@
                     async populateList() {
                         const { assignmentListTableBody, assignmentListMessage } = uiElements;
                         assignmentListTableBody.innerHTML = '';
+                        assignmentListMessage.textContent = 'Cargando...';
                         assignmentListMessage.classList.remove('hidden');
+                        
                         const result = await callApi('assignments.php');
                         assignmentListMessage.classList.add('hidden');
+                        
                         if(result.success && result.data){
-                            result.data.forEach(item => {
-                                const row = assignmentListTableBody.insertRow();
-                                const operatorName = item.assigned_operator_name || '<span class="text-red-500">No Asignado</span>';
-                                row.innerHTML = `
-                                    <td>${item.unit_number}</td>
-                                    <td>${item.company_name}</td>
-                                    <td>${operatorName}</td>
-                                `;
-                                const actionCell = row.insertCell();
-                                const assignBtn = document.createElement('button');
-                                assignBtn.textContent = item.assigned_operator_id ? 'Cambiar' : 'Asignar';
-                                assignBtn.className = 'assign-button';
-                                assignBtn.onclick = () => this.openAssignmentModal(item);
-                                actionCell.appendChild(assignBtn);
-                            });
+                            assignmentCache = result.data; // Guardar en caché
+                            this.renderAssignmentList(assignmentCache); // Renderizar la lista completa
+                            this.populateCompanyFilter();
                         }
+                    },
+                    renderAssignmentList(data) {
+                        const { assignmentListTableBody } = uiElements;
+                        assignmentListTableBody.innerHTML = '';
+                        if (data.length === 0) {
+                            assignmentListTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">No se encontraron resultados.</td></tr>';
+                            return;
+                        }
+
+                        data.forEach(item => {
+                            const row = assignmentListTableBody.insertRow();
+                            const operatorName = item.assigned_operator_name 
+                                ? item.assigned_operator_name 
+                                : '<span class="text-red-500 font-semibold">No Asignado</span>';
+                            
+                            row.innerHTML = `
+                                <td>${item.unit_number}</td>
+                                <td>${item.company_name}</td>
+                                <td>${operatorName}</td>
+                            `;
+                            const actionCell = row.insertCell();
+                            const assignBtn = document.createElement('button');
+                            assignBtn.textContent = item.assigned_operator_id ? 'Cambiar' : 'Asignar';
+                            assignBtn.className = 'assign-button';
+                            assignBtn.onclick = () => this.openAssignmentModal(item);
+                            actionCell.appendChild(assignBtn);
+                        });
+                    },
+                    filterAndRenderAssignments() {
+                        const unitSearch = uiElements.assignmentUnitSearch.value.toLowerCase();
+                        const companyFilter = uiElements.assignmentCompanyFilter.value;
+                        const operatorSearch = uiElements.assignmentOperatorSearch.value.toLowerCase();
+
+                        const filteredData = assignmentCache.filter(item => {
+                            const unitMatch = item.unit_number.toLowerCase().includes(unitSearch);
+                            const companyMatch = !companyFilter || item.company_name === companyFilter;
+                            const operatorMatch = !item.assigned_operator_name || item.assigned_operator_name.toLowerCase().includes(operatorSearch);
+                            
+                            // Si se busca un operador y la unidad no tiene uno, no debe aparecer
+                            if (operatorSearch && !item.assigned_operator_name) {
+                                return false;
+                            }
+
+                            return unitMatch && companyMatch && operatorMatch;
+                        });
+
+                        this.renderAssignmentList(filteredData);
+                    },
+                    populateCompanyFilter() {
+                        const companies = [...new Set(assignmentCache.map(item => item.company_name))].sort();
+                        const select = uiElements.assignmentCompanyFilter;
+                        select.innerHTML = '<option value="">Todas las Empresas</option>'; // Reset
+                        companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            select.appendChild(option);
+                        });
                     },
                     async openAssignmentModal(unit) {
                         currentAssignmentUnit = unit;
                         const { assignmentModalOverlay, assignmentModalUnitInfo, assignmentOperatorSelect } = uiElements;
                         assignmentModalUnitInfo.innerHTML = `Unidad: <strong>${unit.unit_number}</strong> | Empresa: <strong>${unit.company_name}</strong>`;
                         
+                        // Crear un mapa de operadores ya asignados a otras unidades
+                        const assignedOperatorsMap = new Map();
+                        assignmentCache.forEach(item => {
+                            if (item.assigned_operator_id && item.unit_id !== unit.unit_id) {
+                                assignedOperatorsMap.set(item.assigned_operator_id.toString(), item.unit_number);
+                            }
+                        });
+
                         const operatorsResult = await callApi('operators.php');
                         if(operatorsResult.success && operatorsResult.data){
                             assignmentOperatorSelect.innerHTML = '<option value="null">-- Sin Asignar --</option>';
                             operatorsResult.data.forEach(op => {
                                 const option = document.createElement('option');
                                 option.value = op.id;
-                                option.textContent = `${op.name} (${op.company})`;
+                                
+                                const assignedToUnit = assignedOperatorsMap.get(op.id.toString());
+                                if (assignedToUnit) {
+                                    option.textContent = `${op.name} (Asignado a ${assignedToUnit})`;
+                                    option.disabled = true;
+                                    option.style.color = '#9ca3af';
+                                } else {
+                                    option.textContent = `${op.name} (${op.company})`;
+                                }
+                                
                                 assignmentOperatorSelect.appendChild(option);
                             });
                             assignmentOperatorSelect.value = unit.assigned_operator_id || 'null';
@@ -2321,7 +2395,8 @@
                         showToast(result.message, result.success ? 'success' : 'error');
                         if(result.success){
                             this.closeAssignmentModal();
-                            this.populateList();
+                            await this.populateList(); // Recargar la lista para reflejar el cambio
+                            this.filterAndRenderAssignments(); // Aplicar filtros existentes
                         }
                     },
                     closeAssignmentModal() {
@@ -2399,7 +2474,7 @@
             const screenIds = ['mainAppScreen', 'loginFormScreen', 'dashboardScreen', 'qrScannerScreen', 'adminMainSelectionScreen', 'assignmentAdminScreen', 'unitAdminScreen', 'operatorMainSelectionScreen', 'operatorAdminScreen', 'operatorEditScreen', 'userAdminScreen', 'companySelectionScreen', 'checkinScreen', 'operatorSelectionScreen', 'bitacoraNumberScreen', 'kmRegistroScreen', 'litrosDieselScreen', 'litrosAutoScreen', 'litrosUreaScreen', 'sellosScreen', 'totalizadorLitrosScreen', 'photoUploadScreen', 'finalizarRegistroScreen', 'postFinalizationScreen', 'bitacoraScreen', 'maintenanceAdminScreen'];
             screenIds.forEach(id => allScreens[id] = document.getElementById(id));
             
-            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToPhotoFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToQRFromPhoto','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals', 'sellosVoiceButton', 'bitacoraVoiceButton', 'litros_dieselVoiceButton', 'litros_ureaVoiceButton', 'totalizadorVoiceButton', 'km_inicioVoiceButton', 'km_finVoiceButton', 'manageMaintenanceButton', 'maintenanceListTableBody', 'maintenanceListMessage', 'backToAdminMainFromMaintenance', 'maintenanceModalOverlay', 'maintenanceModalUnitInfo', 'maintenanceKmInput', 'maintenanceDateInput', 'maintenanceNotesInput', 'saveMaintenanceButton', 'cancelMaintenanceButton'];
+            const uiElementIds = ['touchableBox','loginButton','cancelButton','usernameInput','passwordInput','loginMessage','logoutButton','welcomeGreeting','adminButton','checkinButton','bitacoraButton','qrScannerVideo','qrScannerCanvas','goToCompanySelectionButton','backToDashboardFromQR','manageUnitsButton','manageOperatorsButton','manageAssignmentsButton','manageUsersButton','backToDashboardFromAdminMain','assignmentListTableBody','assignmentListMessage','backToAdminMainFromAssignment','assignmentModalOverlay','assignmentModalUnitInfo','assignmentOperatorSelect','saveAssignmentButton','cancelAssignmentButton','newUnitNumberInput','newUnitCompanySelect','saveUnitButton','unitAdminMessage','cancelUnitEditButton','backToAdminMainFromUnitAdmin','unitListTableBody','unitListMessage','manageAddOperatorButton','manageEditOperatorButton','backToAdminMainFromOperatorMain','newOperatorNameInput','newOperatorCompanySelect','saveOperatorButton','operatorAdminMessage','cancelOperatorEditButton','backToOperatorMainSelection','operatorEditTopMessage','operatorListTableBody','operatorListMessage','backToOperatorMainSelectionFromEdit','newUserNameInput','newUserPasswordInput','newUserTypeSelect','addUserButton','userAdminMessage','backToAdminMainFromUserAdmin','backToDashboardFromCompany','backToCompanySelection','unitButtonGrid','unitLoadMessage','unitSearchInput','unitSearchNotFoundMessage','operatorSearchInput','operatorResultsList','operatorSearchNotFoundMessage','backToPhotoFromOperator','bitacoraNumberInput','confirmBitacoraButton','bitacoraMessage','backToOperatorSelectionFromBitacora','kmInicioInput','kmFinInput','confirmKmRegistroButton','kmRegistroMessage','backToBitacoraNumber','kmRecorridosDisplay','litrosTotalesInput','confirmLitrosDieselButton','litrosDieselMessage','backToKmRegistro','litrosAutoInput','confirmLitrosAutoButton','litrosAutoMessage','backToLitrosDieselFromAuto','litrosUreaInput','confirmLitrosUreaButton','litrosUreaMessage','backToLitrosAuto','sealInput','addSealButton','sealInputMessage','sealListDisplay','confirmSellosButton','sealMessage','backToLitrosUrea','totalizadorLitrosInput','confirmTotalizadorLitrosButton','totalizadorLitrosMessage','backToSellos','finalizarRegistroButton','newRegistrationButton','goToHomeButton','bitacoraUnitFilter','bitacoraStartDateFilter','bitacoraEndDateFilter','generateBitacoraButton','bitacoraTableBody','bitacoraMessageDisplay','bitacoraLoadMessage','backToDashboardFromBitacora','customToastContainer','customModalOverlay','customModalMessage','customModalConfirmButton','customModalCancelButton','refreshUnitsButton','refreshOperatorsButton','cameraPreview','photoPreview','takePictureButton','retryPictureButton','confirmPhotoButton','backToQRFromPhoto','fullscreenButton','customModalImageContainer', 'registrationSummaryContainer', 'summaryToggleButton', 'summaryUnit', 'summaryOperator', 'summaryBitacora', 'summaryKm', 'summaryLitros', 'summarySeals', 'sellosVoiceButton', 'bitacoraVoiceButton', 'litros_dieselVoiceButton', 'litros_ureaVoiceButton', 'totalizadorVoiceButton', 'km_inicioVoiceButton', 'km_finVoiceButton', 'manageMaintenanceButton', 'maintenanceListTableBody', 'maintenanceListMessage', 'backToAdminMainFromMaintenance', 'maintenanceModalOverlay', 'maintenanceModalUnitInfo', 'maintenanceKmInput', 'maintenanceDateInput', 'maintenanceNotesInput', 'saveMaintenanceButton', 'cancelMaintenanceButton', 'assignmentUnitSearch', 'assignmentCompanyFilter', 'assignmentOperatorSearch'];
             uiElementIds.forEach(id => uiElements[id] = document.getElementById(id));
 
             uiElements.fullscreenButton.onclick = toggleFullScreen;
@@ -2446,6 +2521,11 @@
             uiElements.saveMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.saveService();
             uiElements.cancelMaintenanceButton.onclick = () => AppLogic.Admin.Maintenance.closeServiceModal();
             
+            // Listeners para filtros de asignación
+            uiElements.assignmentUnitSearch.oninput = () => AppLogic.Admin.Assignments.filterAndRenderAssignments();
+            uiElements.assignmentCompanyFilter.onchange = () => AppLogic.Admin.Assignments.filterAndRenderAssignments();
+            uiElements.assignmentOperatorSearch.oninput = () => AppLogic.Admin.Assignments.filterAndRenderAssignments();
+
             // Listeners del Flujo de Registro (NUEVO ORDEN)
             document.querySelectorAll('.company-button').forEach(btn => btn.onclick = () => AppLogic.Registration.start(btn.textContent));
             uiElements.takePictureButton.onclick = () => AppLogic.Registration.takePicture();
@@ -2467,28 +2547,16 @@
                 showScreen('kmRegistroScreen');
             };
 
-            uiElements.confirmKmRegistroButton.onclick = () => { 
-                const inicio = parseFloat(uiElements.kmInicioInput.value);
-                const fin = parseFloat(uiElements.kmFinInput.value);
-
-                if (isNaN(inicio) || isNaN(fin)) {
-                    showToast('Por favor, ingresa valores para KM Inicio y Fin.', 'error');
+            uiElements.confirmKmRegistroButton.onclick = () => {
+                const { kmRecorridosDisplay, kmInicioInput, kmFinInput } = uiElements;
+                if (kmRecorridosDisplay.textContent === 'Inválido' || kmInicioInput.value === '' || kmFinInput.value === '') {
+                    showToast('El KM Final debe ser mayor o igual al de Inicio. Por favor, corrige los datos.', 'error');
                     return;
                 }
-
-                if (fin < inicio) {
-                    showToast('El KM de fin no puede ser menor al KM de inicio.', 'error');
-                    return;
-                }
-                
-                if (fin === inicio) {
-                    showToast('Los kilómetros recorridos no pueden ser cero.', 'error');
-                    return;
-                }
-
-                showScreen('litrosDieselScreen'); 
-                updateRegistrationSummary(); 
+                showScreen('litrosDieselScreen');
+                updateRegistrationSummary();
             };
+
             uiElements.confirmLitrosDieselButton.onclick = () => {
                 updateRegistrationSummary();
                 showCustomConfirm({
@@ -2563,6 +2631,9 @@
     </script>
 </body>
 </html>
+
+
+
 
 
 
