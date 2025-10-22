@@ -2275,14 +2275,18 @@
                             });
                         });
 
-                        // 4. Iniciar la impresión
-                        window.print();
-                        showToast('Iniciando impresión. Vuelve aquí para continuar.', 'info', 4000);
-                        
-                        // Opcional: limpiar el contenedor después de un breve tiempo para asegurar que se inicia la impresión
+                        // 4. Iniciar la impresión con un pequeño retraso
+                        // Esto asegura que el navegador tenga tiempo de renderizar los QR (que son SVG o Canvas)
                         setTimeout(() => {
-                           qrContainer.innerHTML = '';
-                        }, 500); // 500ms deberían ser suficientes
+                            window.print();
+                            showToast('Iniciando impresión. Vuelve aquí para continuar.', 'info', 4000);
+                            
+                            // 5. Limpiar el contenedor después de un tiempo para no interferir con la impresión
+                            // Es mejor dejar que el navegador termine su trabajo de impresión
+                            setTimeout(() => {
+                                qrContainer.innerHTML = '';
+                            }, 500); 
+                        }, 50); // Retraso de 50ms
                     }
                 },
                 Operators: {
